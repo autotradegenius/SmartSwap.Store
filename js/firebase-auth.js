@@ -15,9 +15,27 @@
       'auth/email-already-in-use':'An account already exists for this email.',
       'auth/weak-password':'Use a password with at least 6 characters.',
       'auth/too-many-requests':'Too many attempts. Please try again later.',
-      'auth/email-not-verified':'Please verify your email before logging in. Check your inbox for the verification link.'
+      'auth/email-not-verified':'Please verify your email before logging in. Check your inbox and spam folder.',
+      'auth/email-already-verified':'This account is already verified. You can log in normally.'
     };
     return messages[error.code] || error.message || 'Something went wrong. Please try again.';
+  }
+
+  async function resendVerificationEmail(email, password){
+    if(!auth) throw new Error('Firebase is not configured yet. Add your web app config in js/firebase-config.js.');
+    const result = await auth.signInWithEmailAndPassword(email, password);
+    await result.user.reload();
+
+    if(result.user.emailVerified){
+      await auth.signOut();
+      const error = new Error('This account is already verified. You can log in normally.');
+      error.code = 'auth/email-already-verified';
+      throw error;
+    }
+
+    await result.user.sendEmailVerification();
+    await auth.signOut();
+    return result.user;
   }
 
   async function register(email, password){
@@ -63,7 +81,7 @@
       button.disabled = true;
       try {
         await register(form.email.value.trim(), form.password.value);
-        message.textContent = 'Account created successfully. A verification email has been sent. Please verify before logging in.';
+        message.textContent = 'Account created successfully. A verification email has been sent. Please check your inbox and spam folder before logging in.';
         message.className = 'form-msg ok';
         form.reset();
       } catch(error) {
@@ -90,7 +108,7 @@
     });
   }
 
-  window.swapioAuth = { login, register, requireUser, messageForError, signOut: () => auth?.signOut() };
+  window.swapioAuth = { login, register, resendVerificationEmail, requireUser, messageForError, signOut: () => auth?.signOut() };
   window.setupSwapioAuth = function(){
     setupAuthForms();
     if(!auth) return;
