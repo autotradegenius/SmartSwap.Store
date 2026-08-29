@@ -1,5 +1,39 @@
-const ADMIN_PASSWORD = 'swapio-admin';
+const ADMIN_EMAIL = (window.SWAPIO_ADMIN_EMAIL || 'admin@swapio.com').toLowerCase();
 const productStoreKey = 'swapioAdminProducts';
+
+function showAdminMessage(message, isError = true){
+  const msg = document.getElementById('adminLoginMsg');
+  if(!msg) return;
+  msg.textContent = message;
+  msg.className = `form-msg ${isError ? 'err' : 'ok'}`;
+}
+
+function initializeFirebaseAuth(){
+  if(!window.SWAPIO_FIREBASE_CONFIG || !window.firebase || !firebase.auth) return null;
+
+  if(!firebase.apps.length){
+    firebase.initializeApp(window.SWAPIO_FIREBASE_CONFIG);
+  }
+
+  return firebase.auth();
+}
+
+async function signInAdminWithFirebase(email, password){
+  const auth = initializeFirebaseAuth();
+  if(!auth){
+    throw new Error('Firebase Auth is not ready. Please make sure Firebase is configured correctly.');
+  }
+
+  const userCredential = await auth.signInWithEmailAndPassword(email, password);
+  const token = await userCredential.user.getIdTokenResult(true);
+
+  if(token.claims.admin !== true && userCredential.user.email?.toLowerCase() !== ADMIN_EMAIL){
+    await auth.signOut();
+    throw new Error('This account is not allowed to access the admin dashboard.');
+  }
+
+  return userCredential.user;
+}
 
 function readProducts(){ return JSON.parse(localStorage.getItem(productStoreKey) || '[]'); }
 function saveProducts(products){ localStorage.setItem(productStoreKey, JSON.stringify(products)); }
@@ -157,15 +191,74 @@ function setupAdmin(){
   const login = document.getElementById('adminLogin');
   const dashboard = document.getElementById('adminDashboard');
   const loginForm = document.getElementById('adminLoginForm');
-  if(sessionStorage.getItem('swapioAdminLoggedIn') === 'true'){
-    login.hidden = true; dashboard.hidden = false; renderAdminProducts(); renderAdminBuyModels(); renderAdminSellModels(); renderAdminSubmissions();
+  const emailInput = document.getElementById('adminEmail');
+  const passwordInput = document.getElementById('adminPassword');
+  const auth = initializeFirebaseAuth();
+
+  if(auth){
+    auth.onAuthStateChanged(async user => {
+      if(!user){
+        if(sessionStorage.getItem('swapioAdminLoggedIn') === 'true') sessionStorage.removeItem('swapioAdminLoggedIn');
+        login.hidden = false;
+        dashboard.hidden = true;
+        return;
+      }
+
+      const token = await user.getIdTokenResult(true);
+      const isAdmin = token.claims.admin === true || user.email?.toLowerCase() === ADMIN_EMAIL;
+
+      if(!isAdmin){
+        await auth.signOut();
+        showAdminMessage('This account is not allowed to access the admin dashboard.');
+        login.hidden = false;
+        dashboard.hidden = true;
+        return;
+      }
+
+      sessionStorage.setItem('swapioAdminLoggedIn', 'true');
+      login.hidden = true; dashboard.hidden = false;
+      renderAdminProducts(); renderAdminBuyModels(); renderAdminSellModels(); renderAdminSubmissions();
+    });
+  } else {
+    login.hidden = false;
+    dashboard.hidden = true;
   }
-  loginForm.addEventListener('submit', event => {
+
+
+  loginForm.addEventListener('submit', async event => {
     event.preventDefault();
-    if(document.getElementById('adminPassword').value !== ADMIN_PASSWORD){ document.getElementById('adminLoginMsg').textContent = 'Wrong password.'; return; }
-    sessionStorage.setItem('swapioAdminLoggedIn', 'true'); login.hidden = true; dashboard.hidden = false; renderAdminProducts(); renderAdminBuyModels(); renderAdminSellModels(); renderAdminSubmissions();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    showAdminMessage('');
+
+    if(!email || !password){
+      showAdminMessage('Please enter the admin email and password.');
+      return;
+    }
+
+    if(!auth){
+      showAdminMessage('Firebase Auth is not configured. Please set up Firebase for admin login.');
+      return;
+    }
+
+    try {
+      const user = await signInAdminWithFirebase(email, password);
+      sessionStorage.setItem('swapioAdminLoggedIn', 'true');
+      sessionStorage.setItem('swapioAdminEmail', user.email || email);
+      login.hidden = true; dashboard.hidden = false; renderAdminProducts(); renderAdminBuyModels(); renderAdminSellModels(); renderAdminSubmissions();
+    } catch (error) {
+      showAdminMessage(error.message || 'Admin login failed.');
+    }
   });
-  document.getElementById('adminLogout').addEventListener('click', () => { sessionStorage.removeItem('swapioAdminLoggedIn'); location.reload(); });
+
+  document.getElementById('adminLogout').addEventListener('click', async () => {
+    if(auth){
+      await auth.signOut();
+    }
+    sessionStorage.removeItem('swapioAdminLoggedIn');
+    sessionStorage.removeItem('swapioAdminEmail');
+    location.reload();
+  });
   const productForm = document.getElementById('adminProductForm');
   const productFormTitle = document.getElementById('productFormTitle');
   const cancelEdit = document.getElementById('cancelEdit');

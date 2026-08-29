@@ -11,9 +11,14 @@
 <body>
 <main class="section wrap admin-page">
   <section id="adminLogin" class="modal-box admin-login-box">
-    <div class="eyebrow">Private area</div><h2>SWAPIO Admin</h2><p class="section-note">Manage Buy listings and review customer requests.</p>
-    <form id="adminLoginForm" class="form-fields"><input id="adminPassword" type="password" placeholder="Admin password" required><button class="btn btn-ink" type="submit">Open dashboard</button><div id="adminLoginMsg" class="form-msg err"></div></form>
-    <p class="admin-hint">Demo password: <strong>swapio-admin</strong></p>
+    <div class="eyebrow">Private area</div><h2>SWAPIO Admin</h2><p class="section-note">Sign in with the admin email and password to manage listings and customer requests.</p>
+    <form id="adminLoginForm" class="form-fields">
+      <input id="adminEmail" type="email" placeholder="Admin email" autocomplete="email" required>
+      <input id="adminPassword" type="password" placeholder="Admin password" autocomplete="current-password" required>
+      <button class="btn btn-ink" type="submit">Open dashboard</button>
+      <div id="adminLoginMsg" class="form-msg err"></div>
+    </form>
+    <p class="admin-hint">Use the Firebase admin account email and password only. This page is restricted to the single admin account set in Firebase.</p>
   </section>
   <section id="adminDashboard" hidden>
     <div class="admin-head"><div><div class="eyebrow">Private dashboard</div><h1>Control centre</h1></div><button id="adminLogout" class="btn btn-ghost">Log out</button></div>
@@ -40,6 +45,9 @@
     </div>
   </section>
 </main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>

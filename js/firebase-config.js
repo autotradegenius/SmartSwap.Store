@@ -8,5 +8,7 @@ window.SWAPIO_FIREBASE_CONFIG = {
   measurementId: 'G-5MS64TE0EX'
 };
 
+window.SWAPIO_ADMIN_EMAIL = 'nitindager72@gmail.com';
+
 // Replace this with the UPI ID that should receive customer payments.
 window.SWAPIO_UPI_ID = 'your-upi-id@bank';
