@@ -1,5 +1,6 @@
 const ADMIN_EMAIL = (window.SWAPIO_ADMIN_EMAIL || 'admin@swapio.com').toLowerCase();
 const productStoreKey = 'swapioAdminProducts';
+let firebaseDb = null;
 
 function showAdminMessage(message, isError = true){
   const msg = document.getElementById('adminLoginMsg');
@@ -15,6 +16,7 @@ function initializeFirebaseAuth(){
     firebase.initializeApp(window.SWAPIO_FIREBASE_CONFIG);
   }
 
+  firebaseDb = firebase.firestore();
   return firebase.auth();
 }
 
@@ -36,8 +38,72 @@ async function signInAdminWithFirebase(email, password){
 }
 
 function readProducts(){ return JSON.parse(localStorage.getItem(productStoreKey) || '[]'); }
-function saveProducts(products){ localStorage.setItem(productStoreKey, JSON.stringify(products)); }
+function saveProducts(products){ localStorage.setItem(productStoreKey, JSON.stringify(products)); syncProductsToCloud(products); }
 function readSubmissions(){ return JSON.parse(localStorage.getItem('swapioSubmissions') || '[]'); }
+
+// Cloud sync functions for Firestore
+async function syncProductsToCloud(products) {
+  if (!firebaseDb) return;
+  try {
+    await firebaseDb.collection('admin').doc('data').update({ products: products });
+  } catch (error) {
+    if (error.code === 'not-found') {
+      await firebaseDb.collection('admin').doc('data').set({ products: products });
+    }
+  }
+}
+
+async function loadProductsFromCloud() {
+  if (!firebaseDb) return null;
+  try {
+    const doc = await firebaseDb.collection('admin').doc('data').get();
+    return doc.exists ? (doc.data().products || []) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function syncInventoryToCloud(items) {
+  if (!firebaseDb) return;
+  try {
+    await firebaseDb.collection('admin').doc('data').update({ inventory: items });
+  } catch (error) {
+    if (error.code === 'not-found') {
+      await firebaseDb.collection('admin').doc('data').set({ inventory: items });
+    }
+  }
+}
+
+async function loadInventoryFromCloud() {
+  if (!firebaseDb) return null;
+  try {
+    const doc = await firebaseDb.collection('admin').doc('data').get();
+    return doc.exists ? (doc.data().inventory || []) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function syncReturnsToCloud(items) {
+  if (!firebaseDb) return;
+  try {
+    await firebaseDb.collection('admin').doc('data').update({ returns: items });
+  } catch (error) {
+    if (error.code === 'not-found') {
+      await firebaseDb.collection('admin').doc('data').set({ returns: items });
+    }
+  }
+}
+
+async function loadReturnsFromCloud() {
+  if (!firebaseDb) return null;
+  try {
+    const doc = await firebaseDb.collection('admin').doc('data').get();
+    return doc.exists ? (doc.data().returns || []) : null;
+  } catch (error) {
+    return null;
+  }
+}
 const defaultSellModels = [
   {id:'iphone-13',name:'iPhone 13',spec:'128GB · Apple',price:'28500'},
   {id:'iphone-11',name:'iPhone 11',spec:'64GB · Apple',price:'16200'},
@@ -75,9 +141,9 @@ function saveBuyModels(models){
 const inventoryKey = 'swapioInventory';
 const returnsKey = 'swapioReturns';
 function readInventory(){ return JSON.parse(localStorage.getItem(inventoryKey) || '[]'); }
-function saveInventory(items){ localStorage.setItem(inventoryKey, JSON.stringify(items)); }
+function saveInventory(items){ localStorage.setItem(inventoryKey, JSON.stringify(items)); syncInventoryToCloud(items); }
 function readReturns(){ return JSON.parse(localStorage.getItem(returnsKey) || '[]'); }
-function saveReturns(items){ localStorage.setItem(returnsKey, JSON.stringify(items)); }
+function saveReturns(items){ localStorage.setItem(returnsKey, JSON.stringify(items)); syncReturnsToCloud(items); }
 function saleIsLocked(item){
   if(item.status !== 'sold' || !item.saleDate) return false;
   return Date.now() - new Date(`${item.saleDate}T00:00:00`).getTime() >= 48 * 60 * 60 * 1000;
@@ -85,16 +151,16 @@ function saleIsLocked(item){
 function seedInventory(){
   if(localStorage.getItem(inventoryKey) !== null) return;
   const today = new Date().toISOString().slice(0, 10);
-  const sellStock = defaultSellModels.map((model, index) => ({model:model.name, imei:`DEMO-${String(index + 1).padStart(3, '0')}`, purchasePrice:Math.round(Number(model.price) * 0.72), purchaseDate:today, seller:'Demo seller', status:'in-stock', salePrice:'', saleDate:'', buyer:''}));
+  const sellStock = defaultSellModels.map((model, index) => ({model:model.name, imei:`DEMO-${String(index + 1).padStart(3, '0')}`, purchasePrice:Math.round(Number(model.price) * 0.72), purchaseDate:today, seller:'Demo seller', status:'in-stock', salePrice:'', paymentMethod:'', saleDate:'', buyer:''}));
   const demoSold = [
-    {model:'Galaxy S21 FE', imei:'DEMO-SOLD-01', purchasePrice:'14500', purchaseDate:today, seller:'Demo seller', status:'sold', salePrice:'21499', saleDate:today, buyer:'Demo buyer'},
-    {model:'iPhone SE (2022)', imei:'DEMO-SOLD-02', purchasePrice:'12000', purchaseDate:today, seller:'Demo seller', status:'sold', salePrice:'18499', saleDate:today, buyer:'Demo buyer'}
+    {model:'Galaxy S21 FE', imei:'DEMO-SOLD-01', purchasePrice:'14500', purchaseDate:today, seller:'Demo seller', status:'sold', salePrice:'21499', paymentMethod:'online', saleDate:today, buyer:'Demo buyer'},
+    {model:'iPhone SE (2022)', imei:'DEMO-SOLD-02', purchasePrice:'12000', purchaseDate:today, seller:'Demo seller', status:'sold', salePrice:'18499', paymentMethod:'cash', saleDate:today, buyer:'Demo buyer'}
   ];
   saveInventory([...sellStock, ...demoSold]);
 }
 function csvValue(value){ return `"${String(value ?? '').replace(/"/g, '""')}"`; }
 function inventoryCsv(items){
-  const columns = ['model','imei','purchasePrice','purchaseDate','seller','status','salePrice','saleDate','buyer'];
+  const columns = ['model','imei','purchasePrice','purchaseDate','seller','status','salePrice','paymentMethod','saleDate','buyer'];
   return [columns.join(','), ...items.map(item => columns.map(column => csvValue(item[column])).join(','))].join('\n');
 }
 function returnsCsv(items){
@@ -126,11 +192,16 @@ function parseCsvLine(line){
   }
   values.push(value); return values;
 }
+function paymentLabel(method){
+  if(method === 'cash') return 'Cash';
+  if(method === 'online') return 'Online';
+  return '';
+}
 function renderInventory(){
   const items = readInventory();
   const counts = items.reduce((result, item) => { result[item.status] = (result[item.status] || 0) + 1; return result; }, {});
   document.getElementById('inventorySummary').textContent = `Total: ${items.length} · In stock: ${counts['in-stock'] || 0} · Sold: ${counts.sold || 0} · In repair: ${counts.repair || 0}`;
-  document.getElementById('inventoryList').innerHTML = items.length ? `<table class="inventory-table"><thead><tr><th>Model</th><th>Buy date</th><th>Seller</th><th>Status</th><th>Sale details</th><th></th></tr></thead><tbody>${items.map((item, index) => { const locked = saleIsLocked(item); return `<tr class="${locked ? 'inventory-locked' : ''}"><td><strong>${item.model}</strong><small>${item.imei || 'No IMEI'}</small></td><td>₹${Number(item.purchasePrice || 0).toLocaleString('en-IN')}<small>${item.purchaseDate || '-'}</small></td><td>${item.seller || '-'}</td><td><span class="pill pill-${item.status === 'sold' ? 'green' : 'gold'}">${item.status}</span>${locked ? '<small>Locked after 48h</small>' : ''}</td><td>${item.salePrice ? `₹${Number(item.salePrice).toLocaleString('en-IN')}` : '-'}<small>${item.buyer || item.saleDate || ''}</small></td><td>${locked ? (item.status === 'sold' ? `<button class="btn btn-ghost" data-return-inventory="${index}">Mark return</button>` : '') : `<button class="btn btn-ghost" data-edit-inventory="${index}">Edit</button>`}</td></tr>`; }).join('')}</tbody></table>` : '<p class="admin-empty">No inventory records yet. Add a phone above or import a CSV file.</p>';
+  document.getElementById('inventoryList').innerHTML = items.length ? `<table class="inventory-table"><thead><tr><th>Model</th><th>Buy date</th><th>Seller</th><th>Status</th><th>Sale details</th><th></th></tr></thead><tbody>${items.map((item, index) => { const locked = saleIsLocked(item); const paymentTag = paymentLabel(item.paymentMethod); return `<tr class="${locked ? 'inventory-locked' : ''}"><td><strong>${item.model}</strong><small>${item.imei || 'No IMEI'}</small></td><td>₹${Number(item.purchasePrice || 0).toLocaleString('en-IN')}<small>${item.purchaseDate || '-'}</small></td><td>${item.seller || '-'}</td><td><span class="pill pill-${item.status === 'sold' ? 'green' : 'gold'}">${item.status}</span>${locked ? '<small>Locked after 48h</small>' : ''}</td><td>${item.salePrice ? `₹${Number(item.salePrice).toLocaleString('en-IN')}${paymentTag ? ` · <span class="pill pill-${item.paymentMethod === 'cash' ? 'gold' : 'green'}">${paymentTag}</span>` : ''}` : '-'}<small>${item.buyer || item.saleDate || ''}</small></td><td>${locked ? (item.status === 'sold' ? `<button class="btn btn-ghost" data-return-inventory="${index}">Mark return</button>` : '') : `<button class="btn btn-ghost" data-edit-inventory="${index}">Edit</button>`}<button class="btn btn-ghost" data-delete-inventory="${index}">Remove</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="admin-empty">No inventory records yet. Add a phone above or import a CSV file.</p>';
 }
 function renderReturns(){
   const list = document.getElementById('returnList');
@@ -144,7 +215,15 @@ function setupInventory(){
   const reset = () => { form.reset(); fields.inventoryIndex.value = ''; form.querySelector('button[type="submit"]').textContent = 'Add inventory'; document.getElementById('cancelInventoryEdit').hidden = true; };
   form.addEventListener('submit', event => { event.preventDefault(); const data = Object.fromEntries(new FormData(form).entries()); const index = data.inventoryIndex; delete data.inventoryIndex; const items = readInventory(); if(index === '') items.unshift(data); else items[Number(index)] = data; saveInventory(items); reset(); renderInventory(); downloadInventoryCsv(); });
   document.getElementById('cancelInventoryEdit').addEventListener('click', reset);
-  document.getElementById('inventoryList').addEventListener('click', event => { const edit = event.target.closest('[data-edit-inventory]'); const returned = event.target.closest('[data-return-inventory]'); const items = readInventory(); if(edit){ const item = items[Number(edit.dataset.editInventory)]; Object.keys(item).forEach(key => { if(fields[key]) fields[key].value = item[key]; }); fields.inventoryIndex.value = edit.dataset.editInventory; form.querySelector('button[type="submit"]').textContent = 'Update inventory'; document.getElementById('cancelInventoryEdit').hidden = false; form.scrollIntoView({behavior:'smooth', block:'center'}); } if(returned){ const item = items[Number(returned.dataset.returnInventory)]; const reason = window.prompt('Return reason?'); if(!reason) return; const returnDate = new Date().toISOString().slice(0, 10); item.status = 'returned'; saveInventory(items); const returns = readReturns(); returns.unshift({model:item.model, customer:item.buyer || '', buyDate:item.purchaseDate || '', returnDate, reason, notes:'Linked from inventory'}); saveReturns(returns); renderInventory(); renderReturns(); downloadInventoryCsv(); } });
+  document.getElementById('inventoryList').addEventListener('click', event => {
+    const edit = event.target.closest('[data-edit-inventory]');
+    const returned = event.target.closest('[data-return-inventory]');
+    const remove = event.target.closest('[data-delete-inventory]');
+    const items = readInventory();
+    if(edit){ const item = items[Number(edit.dataset.editInventory)]; Object.keys(item).forEach(key => { if(fields[key]) fields[key].value = item[key]; }); fields.inventoryIndex.value = edit.dataset.editInventory; form.querySelector('button[type="submit"]').textContent = 'Update inventory'; document.getElementById('cancelInventoryEdit').hidden = false; form.scrollIntoView({behavior:'smooth', block:'center'}); }
+    if(returned){ const item = items[Number(returned.dataset.returnInventory)]; const reason = window.prompt('Return reason?'); if(!reason) return; const returnDate = new Date().toISOString().slice(0, 10); item.status = 'returned'; saveInventory(items); const returns = readReturns(); returns.unshift({model:item.model, customer:item.buyer || '', buyDate:item.purchaseDate || '', returnDate, reason, notes:'Linked from inventory'}); saveReturns(returns); renderInventory(); renderReturns(); downloadInventoryCsv(); }
+    if(remove){ const index = Number(remove.dataset.deleteInventory); if(!window.confirm(`Remove "${items[index].model}" from inventory?`)) return; items.splice(index, 1); saveInventory(items); renderInventory(); }
+  });
   document.getElementById('exportInventory').addEventListener('click', downloadInventoryCsv);
   document.getElementById('exportReturns').addEventListener('click', downloadReturnsCsv);
   document.getElementById('importInventory').addEventListener('change', event => { const file = event.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = () => { const lines = String(reader.result).trim().split(/\r?\n/); const columns = parseCsvLine(lines.shift()); const imported = lines.filter(Boolean).map(line => Object.fromEntries(parseCsvLine(line).map((value, index) => [columns[index], value]))); saveInventory([...imported, ...readInventory()]); renderInventory(); downloadInventoryCsv(); event.target.value = ''; }; reader.readAsText(file); });
@@ -187,6 +266,22 @@ function renderAdminBuyModels(){
     <details class="admin-model-item"><summary><span>${model.name}</span><span class="model-chevron">+</span></summary><div class="admin-model-detail"><p>${model.spec} · ₹${Number(model.price).toLocaleString('en-IN')} · ${model.grade} · ${model.warranty} warranty${model.custom && model.visible === false ? ' · Hidden' : ''}</p><button class="btn btn-ghost" ${model.custom ? `data-edit-custom="${model.customIndex}"` : `data-edit-buy="${index}"`}>Edit</button>${model.custom ? `<button class="btn btn-ghost" data-toggle-product="${model.customIndex}">${model.visible ? 'Hide' : 'Show'}</button><button class="btn btn-ghost" data-delete-product="${model.customIndex}">Delete</button>` : ''}</div></details>`).join('');
 }
 
+async function loadAllDataFromCloud() {
+  const cloudProducts = await loadProductsFromCloud();
+  const cloudInventory = await loadInventoryFromCloud();
+  const cloudReturns = await loadReturnsFromCloud();
+  
+  if (cloudProducts !== null) {
+    localStorage.setItem(productStoreKey, JSON.stringify(cloudProducts));
+  }
+  if (cloudInventory !== null) {
+    localStorage.setItem(inventoryKey, JSON.stringify(cloudInventory));
+  }
+  if (cloudReturns !== null) {
+    localStorage.setItem(returnsKey, JSON.stringify(cloudReturns));
+  }
+}
+
 function setupAdmin(){
   // Force clear any old session data from demo password era
   sessionStorage.removeItem('swapioAdminLoggedIn');
@@ -221,6 +316,10 @@ function setupAdmin(){
 
       sessionStorage.setItem('swapioAdminLoggedIn', 'true');
       login.hidden = true; dashboard.hidden = false;
+      
+      // Load cloud data from Firestore
+      await loadAllDataFromCloud();
+      
       renderAdminProducts(); renderAdminBuyModels(); renderAdminSellModels(); renderAdminSubmissions();
     });
   } else {
@@ -249,6 +348,10 @@ function setupAdmin(){
       const user = await signInAdminWithFirebase(email, password);
       sessionStorage.setItem('swapioAdminLoggedIn', 'true');
       sessionStorage.setItem('swapioAdminEmail', user.email || email);
+      
+      // Load cloud data from Firestore
+      await loadAllDataFromCloud();
+      
       login.hidden = true; dashboard.hidden = false; renderAdminProducts(); renderAdminBuyModels(); renderAdminSellModels(); renderAdminSubmissions();
     } catch (error) {
       showAdminMessage(error.message || 'Admin login failed.');

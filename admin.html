@@ -33,7 +33,7 @@
     </div>
     <div id="adminInventoryTab" class="admin-tab-panel" hidden>
       <section class="admin-section inventory-section"><div class="admin-section-head"><div><div class="eyebrow">Stock register</div><h2>Inventory</h2></div><div class="inventory-actions"><button id="exportInventory" class="btn btn-ghost">Export CSV</button><label class="btn btn-ghost file-button">Import CSV<input id="importInventory" type="file" accept=".csv,text/csv"></label></div></div>
-        <form id="inventoryForm" class="inventory-form"><input name="model" placeholder="Phone model" required><input name="imei" placeholder="IMEI / serial number"><input name="purchasePrice" type="number" placeholder="Purchase price" required><label class="date-field"><span>Buy date</span><input name="purchaseDate" type="date" required></label><input name="seller" placeholder="Bought from"><select name="status"><option value="in-stock">In stock</option><option value="sold">Sold</option><option value="returned">Returned</option><option value="repair">In repair</option><option value="reserved">Reserved</option></select><input name="salePrice" type="number" placeholder="Sale price"><label class="date-field"><span>Sold date</span><input name="saleDate" type="date"></label><input name="buyer" placeholder="Sold to"><input name="inventoryIndex" type="hidden"><div class="inventory-form-actions"><button class="btn btn-coral" type="submit">Add inventory</button><button id="cancelInventoryEdit" class="btn btn-ghost-dark" type="button" hidden>Cancel edit</button></div></form>
+        <form id="inventoryForm" class="inventory-form"><input name="model" placeholder="Phone model" required><input name="imei" placeholder="IMEI / serial number"><input name="purchasePrice" type="number" placeholder="Purchase price" required><label class="date-field"><span>Buy date</span><input name="purchaseDate" type="date" required></label><input name="seller" placeholder="Bought from"><select name="status"><option value="in-stock">In stock</option><option value="sold">Sold</option><option value="returned">Returned</option><option value="repair">In repair</option><option value="reserved">Reserved</option></select><input name="salePrice" type="number" placeholder="Sale price"><select name="paymentMethod"><option value="">Payment method</option><option value="cash">Cash</option><option value="online">Online</option></select><label class="date-field"><span>Sold date</span><input name="saleDate" type="date"></label><input name="buyer" placeholder="Sold to"><input name="inventoryIndex" type="hidden"><div class="inventory-form-actions"><button class="btn btn-coral" type="submit">Add inventory</button><button id="cancelInventoryEdit" class="btn btn-ghost-dark" type="button" hidden>Cancel edit</button></div></form>
         <div class="inventory-summary" id="inventorySummary"></div><div id="inventoryList" class="inventory-table-wrap"></div>
       </section>
     </div>
@@ -47,6 +47,7 @@
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/admin.js"></script>
 </body>
