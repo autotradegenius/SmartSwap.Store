@@ -188,6 +188,10 @@ function renderAdminBuyModels(){
 }
 
 function setupAdmin(){
+  // Force clear any old session data from demo password era
+  sessionStorage.removeItem('swapioAdminLoggedIn');
+  sessionStorage.removeItem('swapioAdminEmail');
+  
   const login = document.getElementById('adminLogin');
   const dashboard = document.getElementById('adminDashboard');
   const loginForm = document.getElementById('adminLoginForm');
