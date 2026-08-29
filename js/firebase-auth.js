@@ -23,10 +23,6 @@
     if(!auth) throw new Error('Firebase is not configured yet. Add your web app config in js/firebase-config.js.');
     const result = await auth.signInWithEmailAndPassword(email, password);
     await result.user.reload();
-    if(!result.user.emailVerified){
-      await auth.signOut();
-      throw new Error('Please click the verification link in your email before logging in.');
-    }
     return result.user;
   }
 
@@ -48,10 +44,8 @@
       button.disabled = true;
       try {
         if(!auth) throw new Error('Firebase is not configured yet. Add your web app config in js/firebase-config.js.');
-        const userCredential = await auth.createUserWithEmailAndPassword(form.email.value.trim(), form.password.value);
-        await userCredential.user.sendEmailVerification();
-        await auth.signOut();
-        message.textContent = 'Account created. Check your email and click the verification link before logging in.';
+        await auth.createUserWithEmailAndPassword(form.email.value.trim(), form.password.value);
+        message.textContent = 'Account created successfully. You can now log in with your email and password.';
         message.className = 'form-msg ok';
         form.reset();
       } catch(error) {
