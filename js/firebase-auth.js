@@ -14,15 +14,34 @@
       'auth/invalid-credential':'The email or password is incorrect.',
       'auth/email-already-in-use':'An account already exists for this email.',
       'auth/weak-password':'Use a password with at least 6 characters.',
-      'auth/too-many-requests':'Too many attempts. Please try again later.'
+      'auth/too-many-requests':'Too many attempts. Please try again later.',
+      'auth/email-not-verified':'Please verify your email before logging in. Check your inbox for the verification link.'
     };
     return messages[error.code] || error.message || 'Something went wrong. Please try again.';
+  }
+
+  async function register(email, password){
+    if(!auth) throw new Error('Firebase is not configured yet. Add your web app config in js/firebase-config.js.');
+    const result = await auth.createUserWithEmailAndPassword(email, password);
+    if(!result.user.emailVerified){
+      await result.user.sendEmailVerification();
+      await auth.signOut();
+    }
+    return result.user;
   }
 
   async function login(email, password){
     if(!auth) throw new Error('Firebase is not configured yet. Add your web app config in js/firebase-config.js.');
     const result = await auth.signInWithEmailAndPassword(email, password);
     await result.user.reload();
+
+    if(!result.user.emailVerified){
+      await auth.signOut();
+      const error = new Error('Please verify your email before logging in.');
+      error.code = 'auth/email-not-verified';
+      throw error;
+    }
+
     return result.user;
   }
 
@@ -43,9 +62,8 @@
       message.textContent = '';
       button.disabled = true;
       try {
-        if(!auth) throw new Error('Firebase is not configured yet. Add your web app config in js/firebase-config.js.');
-        await auth.createUserWithEmailAndPassword(form.email.value.trim(), form.password.value);
-        message.textContent = 'Account created successfully. You can now log in with your email and password.';
+        await register(form.email.value.trim(), form.password.value);
+        message.textContent = 'Account created successfully. A verification email has been sent. Please verify before logging in.';
         message.className = 'form-msg ok';
         form.reset();
       } catch(error) {
@@ -72,11 +90,26 @@
     });
   }
 
-  window.swapioAuth = { login, requireUser, messageForError, signOut: () => auth?.signOut() };
+  window.swapioAuth = { login, register, requireUser, messageForError, signOut: () => auth?.signOut() };
   window.setupSwapioAuth = function(){
     setupAuthForms();
     if(!auth) return;
     auth.onAuthStateChanged(user => {
+      if(user && !user.emailVerified){
+        auth.signOut();
+        currentUser = null;
+        const label = document.getElementById('authUserLabel');
+        if(label) {
+          label.textContent = '';
+          label.hidden = true;
+        }
+        const loginButton = document.getElementById('loginOpenBtn');
+        const logoutButton = document.getElementById('logoutBtn');
+        if(loginButton) loginButton.hidden = false;
+        if(logoutButton) logoutButton.hidden = true;
+        return;
+      }
+
       currentUser = user;
       const label = document.getElementById('authUserLabel');
       const loginButton = document.getElementById('loginOpenBtn');
