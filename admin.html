@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWAPIO — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="section wrap admin-page">
+  <section id="adminLogin" class="modal-box admin-login-box">
+    <div class="eyebrow">Private area</div><h2>SWAPIO Admin</h2><p class="section-note">Manage Buy listings and review customer requests.</p>
+    <form id="adminLoginForm" class="form-fields"><input id="adminPassword" type="password" placeholder="Admin password" required><button class="btn btn-ink" type="submit">Open dashboard</button><div id="adminLoginMsg" class="form-msg err"></div></form>
+    <p class="admin-hint">Demo password: <strong>swapio-admin</strong></p>
+  </section>
+  <section id="adminDashboard" hidden>
+    <div class="admin-head"><div><div class="eyebrow">Private dashboard</div><h1>Control centre</h1></div><button id="adminLogout" class="btn btn-ghost">Log out</button></div>
+    <nav class="admin-tabs" aria-label="Admin sections"><button class="admin-tab active" data-admin-tab="catalog">Phones &amp; requests</button><button class="admin-tab" data-admin-tab="inventory">Inventory</button><button class="admin-tab" data-admin-tab="returns">Returns</button></nav>
+    <div id="adminCatalogTab" class="admin-tab-panel">
+    <div class="form-panel admin-form-panel"><div><h3 id="productFormTitle">Add phone</h3><p>Add price, details, and separate front/back photos. Both photos appear together on the customer catalog.</p></div><form id="adminProductForm" class="form-fields"><input name="name" placeholder="Phone name" required><input name="brand" placeholder="Brand, e.g. Apple" required><input name="price" type="number" placeholder="Selling price" required><input name="oldPrice" type="number" placeholder="Original price (Buy page)"><input name="grade" placeholder="Grade, e.g. Superb"><input name="warranty" placeholder="Warranty, e.g. 30-day"><input name="details" placeholder="Details, e.g. 128GB · Superb · 30-day warranty"><label class="admin-file-label">Front photo<input name="frontPhoto" type="file" accept="image/*"></label><label class="admin-file-label">Back photo<input name="backPhoto" type="file" accept="image/*"></label><input name="editIndex" type="hidden" value=""><div class="admin-form-actions"><button class="btn btn-coral" type="submit">Add phone</button><button id="cancelEdit" class="btn btn-ghost-dark" type="button" hidden>Cancel edit</button></div></form></div>
+    <div class="admin-catalog-grid">
+      <section class="admin-section"><div class="admin-section-head"><h2>Sell phone prices</h2><button class="btn btn-ghost" onclick="location.href='Sell.html'">View Sell page</button></div><div id="adminSellModels" class="admin-list"></div></section>
+      <section class="admin-section"><div class="admin-section-head"><h2>Buy phone details</h2><button class="btn btn-ghost" onclick="location.href='Buy.html'">View Buy page</button></div><div id="adminBuyModels" class="admin-list"></div></section>
+    </div>
+    <section class="admin-section"><div class="admin-section-head"><h2>Sell and Repair requests</h2><button id="refreshSubmissions" class="btn btn-ghost">Refresh</button></div><div id="adminSubmissions" class="admin-list"></div></section>
+    </div>
+    <div id="adminInventoryTab" class="admin-tab-panel" hidden>
+      <section class="admin-section inventory-section"><div class="admin-section-head"><div><div class="eyebrow">Stock register</div><h2>Inventory</h2></div><div class="inventory-actions"><button id="exportInventory" class="btn btn-ghost">Export CSV</button><label class="btn btn-ghost file-button">Import CSV<input id="importInventory" type="file" accept=".csv,text/csv"></label></div></div>
+        <form id="inventoryForm" class="inventory-form"><input name="model" placeholder="Phone model" required><input name="imei" placeholder="IMEI / serial number"><input name="purchasePrice" type="number" placeholder="Purchase price" required><label class="date-field"><span>Buy date</span><input name="purchaseDate" type="date" required></label><input name="seller" placeholder="Bought from"><select name="status"><option value="in-stock">In stock</option><option value="sold">Sold</option><option value="returned">Returned</option><option value="repair">In repair</option><option value="reserved">Reserved</option></select><input name="salePrice" type="number" placeholder="Sale price"><label class="date-field"><span>Sold date</span><input name="saleDate" type="date"></label><input name="buyer" placeholder="Sold to"><input name="inventoryIndex" type="hidden"><div class="inventory-form-actions"><button class="btn btn-coral" type="submit">Add inventory</button><button id="cancelInventoryEdit" class="btn btn-ghost-dark" type="button" hidden>Cancel edit</button></div></form>
+        <div class="inventory-summary" id="inventorySummary"></div><div id="inventoryList" class="inventory-table-wrap"></div>
+      </section>
+    </div>
+    <div id="adminReturnsTab" class="admin-tab-panel" hidden>
+      <section class="admin-section inventory-section"><div class="admin-section-head"><div><div class="eyebrow">Return register</div><h2>Phone returns</h2></div><button id="exportReturns" class="btn btn-ghost">Export returns CSV</button></div>
+        <form id="returnForm" class="inventory-form"><input name="model" placeholder="Phone model" required><input name="customer" placeholder="Customer / buyer"><label class="date-field"><span>Buy date</span><input name="buyDate" type="date" required></label><label class="date-field"><span>Return date</span><input name="returnDate" type="date" required></label><select name="reason" id="returnReason" required><option value="" disabled selected>Return reason</option><option>Customer changed mind</option><option>Device issue</option><option>Wrong model delivered</option><option>Damage in delivery</option><option value="other">Other</option></select><input name="customReason" id="customReturnReason" placeholder="Write your return reason" hidden><input name="notes" placeholder="Additional return notes"><div class="inventory-form-actions"><button class="btn btn-coral" type="submit">Add return</button></div></form>
+        <div id="returnList" class="inventory-table-wrap"></div>
+      </section>
+    </div>
+  </section>
+</main>
+<script src="js/admin.js"></script>
+</body>
+</html>

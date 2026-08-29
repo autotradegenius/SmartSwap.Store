@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWAPIO — Sell, Buy & Repair Refurbished Phones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="index">
+
+<div id="site-header"></div>
+
+<main>
+  <section class="hero wrap">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <div class="eyebrow">Certified Refurbished · Made for India</div>
+        <h1>Your phone's <em>next chapter</em> starts here.</h1>
+        <p>Sell your old phone for an instant, fair price. Buy a certified refurbished phone at up to 40% off. Or get it fixed by verified technicians — all in one place.</p>
+
+        <div class="tab-switch" id="heroTabs">
+          <button class="active" data-tab="sell">Sell</button>
+          <button data-tab="buy">Buy</button>
+          <button data-tab="repair">Repair</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-sell">
+          <div class="hero-search">
+            <input type="text" placeholder="Search your phone to sell — e.g. iPhone 12">
+            <a class="btn btn-coral" href="sell.html">Get Price</a>
+          </div>
+          <div class="brand-row">
+            <a class="brand-chip" href="sell.html">Apple</a>
+            <a class="brand-chip" href="sell.html">Samsung</a>
+            <a class="brand-chip" href="sell.html">OnePlus</a>
+            <a class="brand-chip" href="sell.html">Xiaomi</a>
+            <a class="brand-chip" href="sell.html">More brands</a>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-buy">
+          <div class="hero-search">
+            <input type="text" placeholder="Search refurbished phones — e.g. Galaxy S22">
+            <a class="btn btn-coral" href="buy.html">Browse</a>
+          </div>
+          <div class="brand-row">
+            <a class="brand-chip" href="buy.html">Under ₹10,000</a>
+            <a class="brand-chip" href="buy.html">Under ₹20,000</a>
+            <a class="brand-chip" href="buy.html">iPhones</a>
+            <a class="brand-chip" href="buy.html">All phones</a>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-repair">
+          <div class="hero-search">
+            <input type="text" placeholder="What needs fixing? — e.g. cracked screen">
+            <a class="btn btn-coral" href="repair.html">Book Repair</a>
+          </div>
+          <div class="brand-row">
+            <a class="brand-chip" href="repair.html">Screen</a>
+            <a class="brand-chip" href="repair.html">Battery</a>
+            <a class="brand-chip" href="repair.html">Camera</a>
+            <a class="brand-chip" href="repair.html">All services</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="device-stage">
+        <svg viewBox="0 0 320 400" fill="none">
+          <rect x="20" y="30" width="160" height="320" rx="26" fill="#e7e2d8" opacity="0.6" transform="rotate(-8 100 190)"/>
+          <rect x="20" y="30" width="160" height="320" rx="26" stroke="#12141c" stroke-width="2.5" fill="#faf7f1" transform="rotate(-8 100 190)"/>
+          <rect x="140" y="60" width="160" height="320" rx="26" fill="#ff5d3a"/>
+          <rect x="140" y="60" width="160" height="320" rx="26" stroke="#12141c" stroke-width="2.5"/>
+          <rect x="162" y="90" width="116" height="200" rx="6" fill="#12141c" opacity="0.12"/>
+          <circle cx="220" cy="340" r="8" stroke="#12141c" stroke-width="2" fill="none"/>
+          <g transform="translate(94,175)">
+            <circle cx="24" cy="24" r="26" fill="#12141c"/>
+            <path d="M16 20a10 10 0 0116-4M32 28a10 10 0 01-16 4" stroke="#faf7f1" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+            <path d="M30 14l2 4 4-1" stroke="#faf7f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M18 34l-2-4-4 1" stroke="#faf7f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <div class="section-head">
+      <div class="eyebrow">How it works</div>
+      <h2>Three steps. No showroom queues.</h2>
+      <p>Whether you're selling, buying, or repairing — the process stays this simple.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <span class="num">01</span>
+        <h3>Tell us what you need</h3>
+        <p>Pick your phone's brand and model, or describe the issue you want fixed. Takes under a minute.</p>
+      </div>
+      <div class="step">
+        <span class="num">02</span>
+        <h3>Get an instant quote</h3>
+        <p>See your sale price, refurbished pricing, or repair estimate upfront — no back-and-forth calls.</p>
+      </div>
+      <div class="step">
+        <span class="num">03</span>
+        <h3>Doorstep pickup or delivery</h3>
+        <p>A technician or courier comes to you. Get paid, get your device, or get it fixed — same day, most times.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="trust-bar">
+    <div class="wrap trust-grid">
+      <div class="trust-item">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        <div><h4>45-Point Quality Check</h4><p>Every refurbished phone is inspected before it reaches you.</p></div>
+      </div>
+      <div class="trust-item">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V6a4 4 0 018 0v2"/></svg>
+        <div><h4>Certified Data Wipe</h4><p>Your old phone's data is erased and certified before resale.</p></div>
+      </div>
+      <div class="trust-item">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12l2-2m0 0l7-7 7 7m-9-5v14"/></svg>
+        <div><h4>30-Day Warranty</h4><p>Every buy and repair is backed by a replacement warranty.</p></div>
+      </div>
+      <div class="trust-item">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 13l2-6h11l3 6M5 13v6h14v-6M5 13h14"/><circle cx="8" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/></svg>
+        <div><h4>Free Doorstep Service</h4><p>Pickup for sales, delivery for purchases, home visits for repairs.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <div class="section-head">
+      <div class="eyebrow">Choose your path</div>
+      <h2>What are you here to do?</h2>
+    </div>
+    <div class="grid-3">
+      <a class="path-card" href="sell.html">
+        <span class="tag">Sell a phone</span>
+        <h3>Turn your old phone into cash</h3>
+        <p>Instant price, free pickup, payment on verification. No haggling.</p>
+        <span class="go">Check your price →</span>
+      </a>
+      <a class="path-card" href="buy.html">
+        <span class="tag">Buy a phone</span>
+        <h3>Certified refurbished, real savings</h3>
+        <p>Every device is graded, tested, and backed by a 30-day warranty.</p>
+        <span class="go">Browse phones →</span>
+      </a>
+      <a class="path-card" href="repair.html">
+        <span class="tag">Repair a phone</span>
+        <h3>Fixed by verified technicians</h3>
+        <p>Screen, battery, camera, charging port — transparent pricing, no surprises.</p>
+        <span class="go">Book a repair →</span>
+      </a>
+    </div>
+  </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/firebase-auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  // Hero tab switch (Sell / Buy / Repair) — page-specific, so it lives here not in main.js
+  document.getElementById('heroTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-tab]');
+    if(!btn) return;
+    document.querySelectorAll('#heroTabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+</script>
+</body>
+</html>

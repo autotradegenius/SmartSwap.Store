@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWAPIO — Repair Your Phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="repair">
+
+<div id="site-header"></div>
+
+<main>
+  <section class="section wrap">
+    <div class="section-head">
+      <div class="eyebrow">Repair services</div>
+      <h2>Fixed right, priced upfront</h2>
+      <p>Transparent starting prices for the most common issues. Final quote confirmed after diagnosis — always before we start.</p>
+    </div>
+
+    <div class="grid-3" id="repairGrid"></div>
+
+    <div class="form-panel" style="margin-top:56px;">
+      <div>
+        <h3>Book a free diagnosis</h3>
+        <p>Tell us the issue and your phone model. A technician will confirm the price and time slot within the hour — pickup or in-store, your choice.</p>
+      </div>
+      <form id="repairRequestForm" class="form-fields" data-auth-required>
+        <input name="name" type="text" placeholder="Your name" required>
+        <input name="model" type="text" placeholder="Phone model — e.g. Redmi Note 11" required>
+        <select name="issue" style="color:#fff;" required>
+          <option>What's the issue?</option>
+          <option>Cracked screen</option>
+          <option>Battery draining fast</option>
+          <option>Camera not working</option>
+          <option>Charging port issue</option>
+          <option>Water damage</option>
+          <option>Software / performance issue</option>
+        </select>
+        <input name="phone" type="tel" placeholder="Phone number" required>
+        <textarea name="details" rows="3" placeholder="Anything else we should know?"></textarea>
+        <input id="repairPhotos" name="photos" type="file" accept="image/*" multiple>
+        <div id="repairPhotoPreview" class="photo-preview"></div>
+        <button class="btn btn-coral" type="submit">Get My Quote</button>
+        <div class="form-msg"></div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/firebase-auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/customer-forms.js"></script>
+<script>
+// ---------- repair grid ----------
+const repairServices = [
+  {name:'Screen Replacement', desc:'Original-grade display and touch panel replacement.', price:'From ₹1,499', time:'45 min'},
+  {name:'Battery Replacement', desc:'Restore full-day battery life with a certified cell.', price:'From ₹999', time:'30 min'},
+  {name:'Camera Repair', desc:'Front or rear camera module diagnosis and replacement.', price:'From ₹1,199', time:'40 min'},
+  {name:'Charging Port Fix', desc:'Loose or unresponsive charging port repair.', price:'From ₹799', time:'35 min'},
+  {name:'Water Damage Recovery', desc:'Full diagnostic clean and component-level repair.', price:'From ₹1,999', time:'Same day'},
+  {name:'Software & Performance', desc:'OS issues, slow performance, boot loops, and more.', price:'From ₹499', time:'20 min'},
+];
+document.getElementById('repairGrid').innerHTML = repairServices.map(s=>`
+  <div class="service-card">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 005.4-5.4l-2.1 2.1-2-2 2.1-2.1z"/></svg>
+    <h4>${s.name}</h4>
+    <p>${s.desc}</p>
+    <div class="meta"><span>${s.price}</span><span>${s.time}</span></div>
+  </div>`).join('');
+</script>
+</body>
+</html>

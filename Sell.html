@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWAPIO — Sell Your Phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="sell">
+
+<div id="site-header"></div>
+
+<main>
+  <section class="section wrap">
+    <div class="section-head">
+      <div class="eyebrow">Sell your phone</div>
+      <h2>What's your old phone worth today?</h2>
+      <p>Select your brand and model to see an instant price. Free pickup, on-the-spot payment.</p>
+    </div>
+
+    <div class="form-panel" style="margin-top:32px;">
+      <div><h3>Tell us about your phone</h3><p>Share your details and up to 5 photos. Our team will review the phone and contact you with a quote.</p></div>
+      <form id="sellRequestForm" class="form-fields">
+        <input name="name" placeholder="Your name" required>
+        <input name="phone" type="tel" placeholder="Phone number" required>
+        <input name="model" placeholder="Phone model and storage" required>
+        <textarea name="details" rows="3" placeholder="Condition, battery health, or anything else"></textarea>
+        <input id="sellPhotos" name="photos" type="file" accept="image/*" multiple>
+        <div id="sellPhotoPreview" class="photo-preview"></div>
+        <button class="btn btn-coral" type="submit">Get estimated price</button>
+        <button class="btn btn-ink" id="confirmSellButton" type="button" data-auth-required hidden>Confirm sell request</button>
+        <div class="form-msg"></div>
+      </form>
+    </div>
+
+    <div class="brand-row" style="margin:56px 0 36px;">
+      <span class="brand-chip">Apple</span>
+      <span class="brand-chip">Samsung</span>
+      <span class="brand-chip">OnePlus</span>
+      <span class="brand-chip">Xiaomi</span>
+      <span class="brand-chip">Vivo</span>
+      <span class="brand-chip">Oppo</span>
+      <span class="brand-chip">Google</span>
+      <span class="brand-chip">More brands →</span>
+    </div>
+
+    <div class="grid-4" id="sellGrid"></div>
+
+    <div class="section-head" style="margin-top:56px;">
+      <div class="eyebrow">Why sell to SWAPIO</div>
+      <h2>Fair value, zero hassle</h2>
+    </div>
+    <div class="grid-3">
+      <div class="value-card"><span class="range">Best Price Promise</span><p style="color:var(--slate);font-size:14.5px;">We benchmark prices daily against the open resale market — no lowballing at pickup.</p></div>
+      <div class="value-card"><span class="range">Instant Payment</span><p style="color:var(--slate);font-size:14.5px;">Paid via UPI or bank transfer the moment your device passes inspection.</p></div>
+      <div class="value-card"><span class="range">Data, Erased &amp; Certified</span><p style="color:var(--slate);font-size:14.5px;">Every device gets a certified factory wipe — your data never leaves with worry.</p></div>
+    </div>
+  </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/firebase-auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/customer-forms.js"></script>
+<script>
+// ---------- phone icon svg (shared) ----------
+const phoneSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10.5 18.5h3" stroke-linecap="round"/></svg>`;
+window.swapioPhoneSVG = phoneSVG;
+
+// ---------- sell grid ----------
+const sellModels = [
+  {id:'iphone-13',name:'iPhone 13', spec:'128GB · Apple', price:'Up to ₹28,500', image:'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?auto=format&fit=crop&w=500&q=85'},
+  {id:'iphone-11',name:'iPhone 11', spec:'64GB · Apple', price:'Up to ₹16,200', image:'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=500&q=85'},
+  {id:'galaxy-s21',name:'Galaxy S21', spec:'128GB · Samsung', price:'Up to ₹14,200', image:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Samsung_Galaxy_S21_Front.jpg/500px-Samsung_Galaxy_S21_Front.jpg'},
+  {id:'galaxy-m32',name:'Galaxy M32', spec:'64GB · Samsung', price:'Up to ₹6,300', image:'https://images.unsplash.com/photo-1556656793-08538906a9f8?auto=format&fit=crop&w=500&q=85'},
+  {id:'oneplus-9',name:'OnePlus 9', spec:'128GB · OnePlus', price:'Up to ₹11,800'},
+  {id:'oneplus-nord-2',name:'OnePlus Nord 2', spec:'128GB · OnePlus', price:'Up to ₹9,300', image:'https://images.unsplash.com/photo-1523206489230-c012c64b2b48?auto=format&fit=crop&w=500&q=85'},
+  {id:'redmi-note-11-pro',name:'Redmi Note 11 Pro', spec:'128GB · Xiaomi', price:'Up to ₹6,900', image:'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=500&q=85'},
+  {id:'pixel-6a',name:'Pixel 6a', spec:'128GB · Google', price:'Up to ₹13,500', image:'https://images.unsplash.com/photo-1605236453806-6ff36851218e?auto=format&fit=crop&w=500&q=85'},
+];
+const sellOverrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
+sellModels.forEach(model => Object.assign(model, sellOverrides[model.id] || {}));
+window.swapioSellPrices = Object.fromEntries(sellModels.map(model => [model.name.toLowerCase(), model.price]));
+document.getElementById('sellGrid').innerHTML = sellModels.map(m=>`
+  <div class="product-card">
+    <div class="${m.image ? 'phone-image-stack' : 'phone-icon'}">${m.backImage ? `<img class="phone-back" src="${m.backImage}" alt="${m.name} back" loading="lazy">` : ''}${m.image ? `<img class="phone-front" src="${m.image}" alt="${m.name} front" loading="lazy" onerror="this.parentElement.innerHTML=window.swapioPhoneSVG">` : phoneSVG}</div>
+    <h4>${m.name}</h4>
+    <div class="spec">${m.spec}</div>
+    <div class="price-row"><span class="now">${m.price}</span></div>
+    <button class="btn btn-ghost" style="width:100%;" onclick="alert('Great choice — next, tell us your phone\\'s condition to lock in the price.')">Check Exact Price</button>
+  </div>`).join('');
+</script>
+</body>
+</html>
