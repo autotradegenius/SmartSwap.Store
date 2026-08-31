@@ -98,7 +98,7 @@ function renderBuyModels(models){
 
 renderBuyModels(buyModels);
 
-document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="checkoutModal"><div class="modal-box checkout-box"><div class="modal-close" id="checkoutClose"><span aria-hidden="true">×</span></div><div id="checkoutEntry"><h3>Pay and complete your order</h3><p class="sub" id="checkoutProduct"></p><div class="upi-payment"><p>Scan this QR with any UPI app</p><img id="upiQr" alt="SWAPIO UPI payment QR code"><strong id="upiIdLabel"></strong><a id="upiLink" class="btn btn-ghost" href="#">Pay in UPI app</a><small>After payment, enter the UTR / transaction ID below.</small></div><form id="checkoutForm" class="form-fields"><input name="name" placeholder="Your name" required><input name="phone" type="tel" placeholder="Phone number" required><textarea name="address" rows="3" placeholder="Delivery address" required></textarea><input name="utr" placeholder="UPI UTR / transaction ID" required><button class="btn btn-coral" type="submit">Submit paid order</button><div class="form-msg"></div></form></div><div id="checkoutSubmitted" class="checkout-submitted" hidden><h3>Payment submitted</h3><p id="checkoutSubmittedMessage"></p><strong id="checkoutTimer"></strong><small>We are checking your payment and will contact you shortly.</small></div></div></div>`);
+document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="checkoutModal"><div class="modal-box checkout-box"><div class="modal-close" id="checkoutClose"><span aria-hidden="true">×</span></div><div id="checkoutEntry"><h3>Pay and complete your order</h3><p class="sub" id="checkoutProduct"></p><div class="upi-payment"><p>Scan this QR with any UPI app</p><img id="upiQr" alt="SmartSwap.Store UPI payment QR code"><strong id="upiIdLabel"></strong><a id="upiLink" class="btn btn-ghost" href="#">Pay in UPI app</a><small>After payment, enter the UTR / transaction ID below.</small></div><form id="checkoutForm" class="form-fields"><input name="name" placeholder="Your name" required><input name="phone" type="tel" placeholder="Phone number" required><textarea name="address" rows="3" placeholder="Delivery address" required></textarea><input name="utr" placeholder="UPI UTR / transaction ID" required><button class="btn btn-coral" type="submit">Submit paid order</button><div class="form-msg"></div></form></div><div id="checkoutSubmitted" class="checkout-submitted" hidden><h3>Payment submitted</h3><p id="checkoutSubmittedMessage"></p><strong id="checkoutTimer"></strong><small>We are checking your payment and will contact you shortly.</small></div></div></div>`);
 const checkoutModal = document.getElementById('checkoutModal');
 const checkoutForm = document.getElementById('checkoutForm');
 const checkoutProduct = document.getElementById('checkoutProduct');
@@ -116,7 +116,7 @@ buyGrid.addEventListener('click', event => {
   checkoutProduct.textContent = `${selectedProduct.name} · ${selectedProduct.price}`;
   const amount = selectedProduct.price.replace(/[^0-9.]/g, '');
   const upiId = window.SWAPIO_UPI_ID || '';
-  const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=SWAPIO&am=${encodeURIComponent(amount)}&cu=INR`;
+  const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=SmartSwap.Store&am=${encodeURIComponent(amount)}&cu=INR`;
   document.getElementById('upiQr').src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUri)}`;
   document.getElementById('upiIdLabel').textContent = upiId;
   document.getElementById('upiLink').href = upiUri;

@@ -1,5 +1,5 @@
 /* ==========================================================
-   SWAPIO — main.js
+   SmartSwap.Store — main.js
    Common code loaded on EVERY page:
    - Loads header.html and footer.html into placeholders
    - Highlights the active nav link
@@ -87,8 +87,8 @@ function ensureLoginUI(){
       <div class="modal-overlay" id="loginModal">
         <div class="modal-box">
           <div class="modal-close" id="loginCloseBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
-          <h3>Login to SWAPIO</h3>
-          <p class="sub">Use the email and password from your SWAPIO account.</p>
+          <h3>Login to SmartSwap.Store</h3>
+          <p class="sub">Use the email and password from your SmartSwap.Store account.</p>
           <div class="form-fields">
             <input type="email" id="loginEmailInput" placeholder="you@example.com" autocomplete="email">
             <input type="password" id="loginPasswordInput" placeholder="Password" autocomplete="current-password">
@@ -157,7 +157,7 @@ function ensureChatbotWidget(){
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="chatbotWidget" class="chatbot-widget">
-      <button id="chatbotToggle" class="chatbot-toggle" type="button" aria-label="Open SWAPIO assistant">
+      <button id="chatbotToggle" class="chatbot-toggle" type="button" aria-label="Open SmartSwap.Store assistant">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M7 18h10a4 4 0 0 0 4-4V8a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4Z"/>
           <path d="M9 10h6M9 13h4"/>
