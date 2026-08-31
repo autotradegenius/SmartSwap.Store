@@ -1,5 +1,5 @@
 const ADMIN_EMAIL = (window.SWAPIO_ADMIN_EMAIL || 'admin@swapio.com').toLowerCase();
-const productStoreKey = 'swapioAdminProducts';
+const productStoreKey = window.swapioData?.STORAGE_KEYS?.products || 'swapioAdminProducts';
 let firebaseDb = null;
 
 function showAdminMessage(message, isError = true){
@@ -10,99 +10,68 @@ function showAdminMessage(message, isError = true){
 }
 
 function initializeFirebaseAuth(){
-  if(!window.SWAPIO_FIREBASE_CONFIG || !window.firebase || !firebase.auth) return null;
-
-  if(!firebase.apps.length){
-    firebase.initializeApp(window.SWAPIO_FIREBASE_CONFIG);
-  }
-
-  firebaseDb = firebase.firestore();
-  return firebase.auth();
+  return window.swapioData ? window.swapioData.initializeFirebaseAuth() : null;
 }
 
 async function signInAdminWithFirebase(email, password){
-  const auth = initializeFirebaseAuth();
-  if(!auth){
-    throw new Error('Firebase Auth is not ready. Please make sure Firebase is configured correctly.');
+  if (window.swapioData && typeof window.swapioData.signInAdminWithFirebase === 'function') {
+    return window.swapioData.signInAdminWithFirebase(email, password);
   }
 
-  const userCredential = await auth.signInWithEmailAndPassword(email, password);
-  const token = await userCredential.user.getIdTokenResult(true);
-
-  if(token.claims.admin !== true && userCredential.user.email?.toLowerCase() !== ADMIN_EMAIL){
-    await auth.signOut();
-    throw new Error('This account is not allowed to access the admin dashboard.');
-  }
-
-  return userCredential.user;
+  throw new Error('Firebase helper is not ready.');
 }
 
-function readProducts(){ return JSON.parse(localStorage.getItem(productStoreKey) || '[]'); }
-function saveProducts(products){ localStorage.setItem(productStoreKey, JSON.stringify(products)); syncProductsToCloud(products); }
+function readProducts(){
+  return window.swapioData ? window.swapioData.readProducts() : JSON.parse(localStorage.getItem(productStoreKey) || '[]');
+}
+function saveProducts(products){
+  if (window.swapioData && typeof window.swapioData.saveProducts === 'function') {
+    return window.swapioData.saveProducts(products);
+  }
+  localStorage.setItem(productStoreKey, JSON.stringify(products));
+}
 function readSubmissions(){ return JSON.parse(localStorage.getItem('swapioSubmissions') || '[]'); }
 
-// Cloud sync functions for Firestore
 async function syncProductsToCloud(products) {
-  if (!firebaseDb) return;
-  try {
-    await firebaseDb.collection('admin').doc('data').update({ products: products });
-  } catch (error) {
-    if (error.code === 'not-found') {
-      await firebaseDb.collection('admin').doc('data').set({ products: products });
-    }
+  if (window.swapioData && typeof window.swapioData.syncProductsToCloud === 'function') {
+    return window.swapioData.syncProductsToCloud(products);
   }
+  return false;
 }
 
 async function loadProductsFromCloud() {
-  if (!firebaseDb) return null;
-  try {
-    const doc = await firebaseDb.collection('admin').doc('data').get();
-    return doc.exists ? (doc.data().products || []) : null;
-  } catch (error) {
-    return null;
+  if (window.swapioData && typeof window.swapioData.loadProductsFromCloud === 'function') {
+    return window.swapioData.loadProductsFromCloud();
   }
+  return null;
 }
 
 async function syncInventoryToCloud(items) {
-  if (!firebaseDb) return;
-  try {
-    await firebaseDb.collection('admin').doc('data').update({ inventory: items });
-  } catch (error) {
-    if (error.code === 'not-found') {
-      await firebaseDb.collection('admin').doc('data').set({ inventory: items });
-    }
+  if (window.swapioData && typeof window.swapioData.syncInventoryToCloud === 'function') {
+    return window.swapioData.syncInventoryToCloud(items);
   }
+  return false;
 }
 
 async function loadInventoryFromCloud() {
-  if (!firebaseDb) return null;
-  try {
-    const doc = await firebaseDb.collection('admin').doc('data').get();
-    return doc.exists ? (doc.data().inventory || []) : null;
-  } catch (error) {
-    return null;
+  if (window.swapioData && typeof window.swapioData.loadInventoryFromCloud === 'function') {
+    return window.swapioData.loadInventoryFromCloud();
   }
+  return null;
 }
 
 async function syncReturnsToCloud(items) {
-  if (!firebaseDb) return;
-  try {
-    await firebaseDb.collection('admin').doc('data').update({ returns: items });
-  } catch (error) {
-    if (error.code === 'not-found') {
-      await firebaseDb.collection('admin').doc('data').set({ returns: items });
-    }
+  if (window.swapioData && typeof window.swapioData.syncReturnsToCloud === 'function') {
+    return window.swapioData.syncReturnsToCloud(items);
   }
+  return false;
 }
 
 async function loadReturnsFromCloud() {
-  if (!firebaseDb) return null;
-  try {
-    const doc = await firebaseDb.collection('admin').doc('data').get();
-    return doc.exists ? (doc.data().returns || []) : null;
-  } catch (error) {
-    return null;
+  if (window.swapioData && typeof window.swapioData.loadReturnsFromCloud === 'function') {
+    return window.swapioData.loadReturnsFromCloud();
   }
+  return null;
 }
 const defaultSellModels = [
   {id:'iphone-13',name:'iPhone 13',spec:'128GB · Apple',price:'28500'},
@@ -138,12 +107,26 @@ function readBuyModels(){
 function saveBuyModels(models){
   localStorage.setItem('swapioBuyModels', JSON.stringify(Object.fromEntries(models.map(model => [model.id, model]))));
 }
-const inventoryKey = 'swapioInventory';
-const returnsKey = 'swapioReturns';
-function readInventory(){ return JSON.parse(localStorage.getItem(inventoryKey) || '[]'); }
-function saveInventory(items){ localStorage.setItem(inventoryKey, JSON.stringify(items)); syncInventoryToCloud(items); }
-function readReturns(){ return JSON.parse(localStorage.getItem(returnsKey) || '[]'); }
-function saveReturns(items){ localStorage.setItem(returnsKey, JSON.stringify(items)); syncReturnsToCloud(items); }
+const inventoryKey = window.swapioData?.STORAGE_KEYS?.inventory || 'swapioInventory';
+const returnsKey = window.swapioData?.STORAGE_KEYS?.returns || 'swapioReturns';
+function readInventory(){
+  return window.swapioData ? window.swapioData.readInventory() : JSON.parse(localStorage.getItem(inventoryKey) || '[]');
+}
+function saveInventory(items){
+  if (window.swapioData && typeof window.swapioData.saveInventory === 'function') {
+    return window.swapioData.saveInventory(items);
+  }
+  localStorage.setItem(inventoryKey, JSON.stringify(items));
+}
+function readReturns(){
+  return window.swapioData ? window.swapioData.readReturns() : JSON.parse(localStorage.getItem(returnsKey) || '[]');
+}
+function saveReturns(items){
+  if (window.swapioData && typeof window.swapioData.saveReturns === 'function') {
+    return window.swapioData.saveReturns(items);
+  }
+  localStorage.setItem(returnsKey, JSON.stringify(items));
+}
 function saleIsLocked(item){
   if(item.status !== 'sold' || !item.saleDate) return false;
   return Date.now() - new Date(`${item.saleDate}T00:00:00`).getTime() >= 48 * 60 * 60 * 1000;

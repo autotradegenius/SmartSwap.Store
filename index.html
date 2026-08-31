@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SWAPIO — Sell, Buy & Repair Refurbished Phones</title>
+<title>SmartSwap.Store — Sell, Buy & Repair Refurbished Phones</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -68,21 +68,15 @@
         </div>
       </div>
 
-      <div class="device-stage">
-        <svg viewBox="0 0 320 400" fill="none">
-          <rect x="20" y="30" width="160" height="320" rx="26" fill="#e7e2d8" opacity="0.6" transform="rotate(-8 100 190)"/>
-          <rect x="20" y="30" width="160" height="320" rx="26" stroke="#12141c" stroke-width="2.5" fill="#faf7f1" transform="rotate(-8 100 190)"/>
-          <rect x="140" y="60" width="160" height="320" rx="26" fill="#ff5d3a"/>
-          <rect x="140" y="60" width="160" height="320" rx="26" stroke="#12141c" stroke-width="2.5"/>
-          <rect x="162" y="90" width="116" height="200" rx="6" fill="#12141c" opacity="0.12"/>
-          <circle cx="220" cy="340" r="8" stroke="#12141c" stroke-width="2" fill="none"/>
-          <g transform="translate(94,175)">
-            <circle cx="24" cy="24" r="26" fill="#12141c"/>
-            <path d="M16 20a10 10 0 0116-4M32 28a10 10 0 01-16 4" stroke="#faf7f1" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-            <path d="M30 14l2 4 4-1" stroke="#faf7f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <path d="M18 34l-2-4-4 1" stroke="#faf7f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          </g>
-        </svg>
+      <div class="device-stage" aria-label="Smartphone showcase">
+        <div class="hero-phones single-phone">
+          <img
+            class="phone-shot phone-main"
+            src="assets/phones/phone-hero-3.png"
+            alt="Smartphone product image"
+          >
+          <div class="hero-glow"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -167,6 +161,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/firebase-auth.js"></script>
+<script src="js/firebase-data.js"></script>
+<script src="js/site-config.js"></script>
+<script src="js/chatbot-responses.js"></script>
 <script src="js/main.js"></script>
 <script>
   // Hero tab switch (Sell / Buy / Repair) — page-specific, so it lives here not in main.js

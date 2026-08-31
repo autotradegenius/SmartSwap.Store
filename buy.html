@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SWAPIO — Buy Refurbished Phones</title>
+<title>SmartSwap.Store — Buy Refurbished Phones</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -40,6 +40,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/firebase-auth.js"></script>
+<script src="js/firebase-data.js"></script>
 <script src="js/main.js"></script>
 <script>
 // ---------- phone icon svg (shared) ----------
@@ -64,8 +65,8 @@ buyModels.forEach(model => {
   if(override.price) model.now = `₹${Number(override.price).toLocaleString('en-IN')}`;
   if(override.oldPrice) model.was = `₹${Number(override.oldPrice).toLocaleString('en-IN')}`;
 });
-const adminBuyModels = JSON.parse(localStorage.getItem('swapioAdminProducts') || '[]')
-  .filter(product => product.visible !== false)
+const catalogProducts = window.swapioData?.readProducts ? window.swapioData.readProducts() : JSON.parse(localStorage.getItem('swapioAdminProducts') || '[]');
+const adminBuyModels = catalogProducts.filter(product => product.visible !== false)
   .map(product => ({
     name: product.name,
     spec: product.details || `${product.brand} · Admin listing`,

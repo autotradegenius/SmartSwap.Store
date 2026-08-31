@@ -31,6 +31,7 @@ async function loadPartials(){
   buildTicker();
   setupHamburger();
   ensureLoginUI();
+  ensureChatbotWidget();
   setupLoginModal();
   if(window.setupSwapioAuth) window.setupSwapioAuth();
 }
@@ -143,6 +144,96 @@ function setupLoginModal(){
       msg1.textContent = window.swapioAuth.messageForError(error);
       msg1.className = 'form-msg err';
     }
+  });
+}
+
+function ensureChatbotWidget(){
+  if(document.getElementById('chatbotWidget')) return;
+
+  const cfg = window.smartSwapChatbotResponses || {
+    welcome: 'How can I help you?',
+    default: 'I can help with buying, selling, and repairs. Tell me what you need and I will guide you.'
+  };
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="chatbotWidget" class="chatbot-widget">
+      <button id="chatbotToggle" class="chatbot-toggle" type="button" aria-label="Open SWAPIO assistant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 18h10a4 4 0 0 0 4-4V8a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4Z"/>
+          <path d="M9 10h6M9 13h4"/>
+          <path d="M9 18l-2 3 4-3"/>
+        </svg>
+      </button>
+      <div id="chatbotPanel" class="chatbot-panel" hidden>
+        <div class="chatbot-header">
+          <div>
+            <strong>Smart Assistant</strong>
+            <small>Online now</small>
+          </div>
+          <button id="chatbotClose" type="button" aria-label="Close chat">×</button>
+        </div>
+        <div class="chatbot-body">
+          <div class="chatbot-message bot">${cfg.welcome || 'How can I help you?'}</div>
+        </div>
+        <form id="chatbotForm" class="chatbot-form">
+          <input id="chatbotInput" type="text" placeholder="Type your question..." aria-label="Type your message">
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  `);
+
+  const panel = document.getElementById('chatbotPanel');
+  const toggle = document.getElementById('chatbotToggle');
+  const close = document.getElementById('chatbotClose');
+  const form = document.getElementById('chatbotForm');
+  const input = document.getElementById('chatbotInput');
+  const body = panel.querySelector('.chatbot-body');
+
+  toggle.addEventListener('click', () => {
+    const shouldOpen = panel.hasAttribute('hidden');
+    if(shouldOpen){
+      panel.removeAttribute('hidden');
+      panel.hidden = false;
+      input.focus();
+    } else {
+      panel.setAttribute('hidden', 'hidden');
+      panel.hidden = true;
+    }
+  });
+
+  close.addEventListener('click', () => {
+    panel.setAttribute('hidden', 'hidden');
+    panel.hidden = true;
+  });
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const value = input.value.trim();
+    if(!value) return;
+
+    const userMsg = document.createElement('div');
+    userMsg.className = 'chatbot-message user';
+    userMsg.textContent = value;
+    body.appendChild(userMsg);
+
+    const typing = document.createElement('div');
+    typing.className = 'chatbot-message bot typing';
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    body.appendChild(typing);
+    body.scrollTop = body.scrollHeight;
+    form.reset();
+
+    const response = window.smartSwapGetResponse ? window.smartSwapGetResponse(value) : (cfg.default || 'I can help with buying, selling, and repairs. Tell me what you need and I will guide you.');
+
+    setTimeout(() => {
+      typing.remove();
+      const botReply = document.createElement('div');
+      botReply.className = 'chatbot-message bot';
+      botReply.textContent = response;
+      body.appendChild(botReply);
+      body.scrollTop = body.scrollHeight;
+    }, 700);
   });
 }
 
