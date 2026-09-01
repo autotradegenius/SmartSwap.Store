@@ -111,8 +111,8 @@ window.smartSwapChatbotResponses = {
     buy_brands: ['which brands', 'brands available', 'what brands', 'all brands'],
     buy_availability: ['in stock', 'available', 'do you have', 'stock check'],
     buy_android_generic: ['android phone', 'android', 'need android'],
-    buy_iphone: ['iphone', 'apple phone', 'i phone'],
-    buy_samsung: ['samsung', 'galaxy'],
+    buy_iphone: ['iphone', 'apple phone', 'i phone', 'want to buy iphone', 'buy iphone', 'looking for iphone'],
+    buy_samsung: ['samsung', 'galaxy', 'want to buy samsung', 'buy samsung'],
     buy_oppo: ['oppo'],
     buy_vivo: ['vivo'],
     buy_oneplus: ['oneplus', 'one plus'],
@@ -280,6 +280,8 @@ function smartSwapInventoryResponse(userText) {
   if (!inventory.length) return null;
 
   const normalized = smartSwapNormalize(userText);
+  const availabilityQuestion = ['available', 'availability', 'in stock', 'stock check', 'do you have', 'is there'].some(phrase => normalized.includes(phrase));
+  if (!availabilityQuestion) return null;
   const match = smartSwapFindInventoryMatch(userText);
   const callNumber = window.smartSwapContact?.call || '+91 9718655625';
   const whatsappNumber = window.smartSwapContact?.whatsapp || '+91 9718655625';
@@ -344,7 +346,7 @@ window.smartSwapGetResponse = function (userText) {
 
       // 1) exact substring match = strong signal
       if (normalized.includes(normalizedPhrase)) {
-        const score = normalizedPhrase.split(' ').length + 1;
+        const score = normalizedPhrase.split(' ').length + 1 + (key.includes('_') ? 0.1 : 0);
         if (score > bestScore) {
           bestScore = score;
           bestKey = key;
@@ -354,7 +356,7 @@ window.smartSwapGetResponse = function (userText) {
 
       // 2) fuzzy word-by-word match = catches typos
       if (smartSwapWordsFuzzyMatch(inputWords, phrase)) {
-        const score = normalizedPhrase.split(' ').length;
+        const score = normalizedPhrase.split(' ').length + (key.includes('_') ? 0.1 : 0);
         if (score > bestScore) {
           bestScore = score;
           bestKey = key;
