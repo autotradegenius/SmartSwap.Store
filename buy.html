@@ -124,15 +124,20 @@ buyGrid.addEventListener('click', event => {
 });
 document.getElementById('checkoutClose').addEventListener('click', () => checkoutModal.classList.remove('open'));
 checkoutModal.addEventListener('click', event => { if(event.target === checkoutModal) checkoutModal.classList.remove('open'); });
-checkoutForm.addEventListener('submit', event => {
+checkoutForm.addEventListener('submit', async event => {
   event.preventDefault();
   if(!window.swapioAuth?.requireUser()) return;
   const data = Object.fromEntries(new FormData(checkoutForm).entries());
-  data.type = 'order'; data.model = selectedProduct.name; data.price = selectedProduct.price; data.payment = 'UPI'; data.paymentStatus = 'Payment pending verification'; data.createdAt = new Date().toLocaleString();
+  data.type = 'order'; data.model = selectedProduct.name; data.price = selectedProduct.price; data.payment = 'UPI'; data.paymentStatus = 'Payment pending verification'; data.createdAt = Date.now();
+  if(!window.swapioData?.saveCustomerSubmission) { checkoutSubmittedMessage.textContent = 'Firebase is not configured yet. Please try again later.'; return; }
+  try {
+    await window.swapioData.saveCustomerSubmission(data);
+  } catch(error) {
+    checkoutSubmittedMessage.textContent = error.message || 'The order could not be saved. Please try again.';
+    return;
+  }
   const orders = JSON.parse(localStorage.getItem('swapioOrders') || '[]');
   orders.unshift(data); localStorage.setItem('swapioOrders', JSON.stringify(orders));
-  const submissions = JSON.parse(localStorage.getItem('swapioSubmissions') || '[]');
-  submissions.unshift(data); localStorage.setItem('swapioSubmissions', JSON.stringify(submissions));
   checkoutForm.reset();
   checkoutEntry.hidden = true; checkoutSubmitted.hidden = false;
   checkoutSubmittedMessage.textContent = 'Order submitted. Payment received for verification.';

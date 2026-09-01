@@ -30,7 +30,10 @@ function saveProducts(products){
   }
   localStorage.setItem(productStoreKey, JSON.stringify(products));
 }
-function readSubmissions(){ return JSON.parse(localStorage.getItem('swapioSubmissions') || '[]'); }
+async function readSubmissions(){
+  if(window.swapioData?.loadCustomerSubmissions) return window.swapioData.loadCustomerSubmissions();
+  return [];
+}
 
 async function syncProductsToCloud(products) {
   if (window.swapioData && typeof window.swapioData.syncProductsToCloud === 'function') {
@@ -229,11 +232,11 @@ function renderAdminProducts(){
     </article>`).join('') : '<p class="admin-empty">No admin products added yet.</p>';
 }
 
-function renderAdminSubmissions(){
+async function renderAdminSubmissions(){
   const list = document.getElementById('adminSubmissions');
-  const submissions = readSubmissions();
+  const submissions = await readSubmissions();
   list.innerHTML = submissions.length ? submissions.map(item => `
-    <article class="admin-item submission-item"><div><span class="pill pill-coral">${item.type}</span><h4>${item.name || 'Customer'}</h4><p>${item.phone || item.email || 'No contact'} · ${item.createdAt}</p><small>${item.model || item.issue || item.details || 'No details'}${item.price ? ` · ${item.price}` : ''}${item.payment ? ` · ${item.payment}` : ''}${item.utr ? ` · UTR: ${item.utr}` : ''}${item.paymentStatus ? ` · ${item.paymentStatus}` : ''}</small></div><div class="admin-photos">${(item.photos || []).map(photo => `<img src="${photo}" alt="Customer upload">`).join('')}</div></article>`).join('') : '<p class="admin-empty">No customer submissions yet.</p>';
+    <article class="admin-item submission-item"><div><span class="pill pill-coral">${item.type}</span><h4>${item.name || 'Customer'}</h4><p>${item.phone || item.email || 'No contact'} · ${item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}</p><small>${item.model || item.issue || item.details || 'No details'}${item.price ? ` · ${item.price}` : ''}${item.payment ? ` · ${item.payment}` : ''}${item.utr ? ` · UTR: ${item.utr}` : ''}${item.paymentStatus ? ` · ${item.paymentStatus}` : ''}</small></div><div class="admin-photos">${(item.photos || []).map(photo => `<img src="${photo}" alt="Customer upload">`).join('')}</div></article>`).join('') : '<p class="admin-empty">No customer submissions yet.</p>';
 }
 
 function renderAdminSellModels(){

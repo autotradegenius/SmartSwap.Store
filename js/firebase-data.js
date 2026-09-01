@@ -152,6 +152,20 @@
     return Array.isArray(data.returns) ? data.returns : [];
   }
 
+  async function saveCustomerSubmission(submission) {
+    const db = getDb();
+    if (!db) throw new Error('Firebase is not configured yet.');
+    await db.collection('submissions').add(submission);
+    return true;
+  }
+
+  async function loadCustomerSubmissions() {
+    const db = getDb();
+    if (!db) return null;
+    const snapshot = await db.collection('submissions').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
   async function loadAllDataFromCloud() {
     const cloudProducts = await loadProductsFromCloud();
     const cloudInventory = await loadInventoryFromCloud();
@@ -186,6 +200,8 @@
     saveReturns,
     syncReturnsToCloud,
     loadReturnsFromCloud,
+    saveCustomerSubmission,
+    loadCustomerSubmissions,
     loadAllDataFromCloud,
     setDocument,
     getDocument

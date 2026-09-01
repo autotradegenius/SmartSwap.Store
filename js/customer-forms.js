@@ -38,9 +38,10 @@ function setupCustomerForm(formId, type){
     })));
     data.type = type;
     data.createdAt = new Date().toLocaleString();
-    const submissions = JSON.parse(localStorage.getItem('swapioSubmissions') || '[]');
-    submissions.unshift(data);
-    localStorage.setItem('swapioSubmissions', JSON.stringify(submissions));
+    if(!window.swapioData?.saveCustomerSubmission) throw new Error('Firebase is not configured yet.');
+    data.createdAt = Date.now();
+    const saved = await window.swapioData.saveCustomerSubmission(data);
+    if(!saved) throw new Error('The request could not be saved. Please try again.');
     form.reset();
     if(confirmButton) confirmButton.hidden = true;
     const preview = form.querySelector('.photo-preview');
@@ -62,7 +63,13 @@ function setupCustomerForm(formId, type){
     if(confirmButton) confirmButton.hidden = false;
   });
 
-  if(confirmButton) confirmButton.addEventListener('click', saveCustomerRequest);
+  if(confirmButton) confirmButton.addEventListener('click', () => {
+    saveCustomerRequest().catch(error => {
+      const message = form.querySelector('.form-msg');
+      message.textContent = error.message || 'The request could not be saved. Please try again.';
+      message.className = 'form-msg err';
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
