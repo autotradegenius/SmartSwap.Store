@@ -272,7 +272,9 @@ function smartSwapLevenshtein(a, b) {
 
 function smartSwapWordsFuzzyMatch(inputWords, patternPhrase) {
   const patternWords = smartSwapNormalize(patternPhrase).split(' ');
-  return patternWords.every(pw => {
+  const meaningfulWords = patternWords.filter(word => word.length >= 3);
+  if (!meaningfulWords.length) return false;
+  return meaningfulWords.every(pw => {
     if (pw.length < 3) return true;
     return inputWords.some(iw => {
       if (iw === pw) return true;
