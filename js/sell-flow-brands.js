@@ -245,8 +245,7 @@ function renderBrandCatalog(brandName, containerId){
 
   const normalizedBrand = normalizeBrandName(brandName);
   const phones = normalizedBrand === 'other' ? getOtherBrandPhones() : getPhonesByBrand(normalizedBrand);
-  const activeModelKeys = getInventoryActiveModelKeys();
-  
+
   if(!phones.length){
     container.innerHTML = '<p style="grid-column:1/-1; color:#8b91a0; text-align:center; padding:40px;">No phones in this brand yet. Check back soon!</p>';
     return;
@@ -256,16 +255,12 @@ function renderBrandCatalog(brandName, containerId){
     const modelSlug = phone.id || phone.name.toLowerCase().replace(/\s+/g, '-');
     const brandKey = normalizeBrandName(phone.brand || brandName || '');
     const imageSrc = phone.image || getBrandFallbackImage(brandKey);
-    const isAvailable = activeModelKeys.has(String(phone.name).trim().toLowerCase()) || activeModelKeys.has(String(modelSlug).trim().toLowerCase());
-    const href = isAvailable ? `../sell-flow/variant.html?model=${modelSlug}&brand=${encodeURIComponent(brandKey)}` : '#';
-    const wrapperTag = isAvailable ? 'a' : 'div';
-    const statusTag = isAvailable ? '' : '<small class="stock-status sold">Coming soon</small>';
+    const href = `../sell-flow/variant.html?model=${modelSlug}&brand=${encodeURIComponent(brandKey)}`;
     return `
-      <${wrapperTag} class="model-card${isAvailable ? '' : ' is-locked'}" href="${href}" ${isAvailable ? '' : 'aria-disabled="true"'}>
+      <a class="model-card" href="${href}">
         <img src="${imageSrc}" alt="${phone.name}" />
         <span>${phone.name}</span>
-        ${statusTag}
-      </${wrapperTag}>
+      </a>
     `;
   }).join('');
 }

@@ -200,12 +200,11 @@
     }
   }
 
-  function renderBrandGrid() {
+    function renderBrandGrid() {
     const grid = document.getElementById('sellFlowBrandGrid');
     if (!grid) return;
 
     const brand = getBrandFromQuery();
-    const activeModelKeys = getInventoryActiveModelKeys();
     const models = getSellModels().filter(model => brand === 'all' || model.brand === brand);
 
     if (!models.length) {
@@ -214,16 +213,12 @@
     }
 
     grid.innerHTML = models.map(model => {
-      const isAvailable = activeModelKeys.has(String(model.name).trim().toLowerCase()) || activeModelKeys.has(String(model.id).trim().toLowerCase());
-      const statusTag = isAvailable ? '' : '<small class="stock-status sold">Coming soon</small>';
-      const href = isAvailable ? `variant.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}` : '#';
-      const clickable = isAvailable ? 'a' : 'div';
+      const href = `variant.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}`;
       return `
-        <${clickable} class="model-card${isAvailable ? '' : ' is-locked'}" href="${href}" ${isAvailable ? '' : 'aria-disabled="true"'}>
+        <a class="model-card" href="${href}">
           <img src="${model.image || 'https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80'}" alt="${model.name}" />
           <span>${model.name}</span>
-          ${statusTag}
-        </${clickable}>
+        </a>
       `;
     }).join('');
   }
