@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Select screen defects | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Sell Old Mobile Phone &nbsp;&gt;&nbsp; Sell Old Apple &nbsp;&gt;&nbsp; Screen/body defects</div>
+
+      <div class="sell-main-panel" style="grid-template-columns:1.6fr .9fr;">
+        <div class="sell-panel-left">
+          <div class="sell-step-header">Select screen/body defects that are applicable!</div>
+          <p class="sell-step-subtitle">Please provide correct details</p>
+
+          <div class="sell-option-grid" style="grid-template-columns:repeat(2,minmax(160px,1fr));">
+            <button class="sell-option-card" type="button">
+              <div class="option-figure">📱</div>
+              <div class="option-text">Broken/scratch on device screen</div>
+            </button>
+            <button class="sell-option-card" type="button">
+              <div class="option-figure">🖥️</div>
+              <div class="option-text">Dead Spot/visible line and discoloration on screen</div>
+            </button>
+            <button class="sell-option-card" type="button">
+              <div class="option-figure">📲</div>
+              <div class="option-text">Scratch/Dent on device body</div>
+            </button>
+            <button class="sell-option-card" type="button">
+              <div class="option-figure">📷</div>
+              <div class="option-text">Device panel missing/broken</div>
+            </button>
+          </div>
+
+          <button class="btn btn-coral btn-wide" onclick="window.location.href='done.html'">Continue →</button>
+        </div>
+
+        <div class="sell-panel-right">
+          <div class="device-card-selected">
+            <div class="device-thumb-wrap">
+              <img id="sellFlowSummaryImage" src="https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80" alt="Apple iPhone 6S" />
+            </div>
+            <div class="device-meta-text">
+              <div class="device-name">Apple iPhone 6S (2 GB/32 GB)</div>
+              <div class="device-price">₹2,310</div>
+              <div class="device-seen">11860+ already sold on SmartSwap</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/sell-flow.js"></script>
+</body>
+</html>

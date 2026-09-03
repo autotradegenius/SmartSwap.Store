@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sell Old Mobile Phone | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Sell Old Mobile Phone</div>
+
+      <div class="sell-main-panel" style="grid-template-columns:1fr;">
+        <div class="sell-panel-left">
+          <div class="sell-title-block">
+            <h1>Select Brand First</h1>
+          </div>
+
+          <div class="sell-search-box" style="max-width:100%;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
+            <input type="text" placeholder="Search model or variant" aria-label="Search model or variant" />
+          </div>
+
+          <div class="brand-label">Choose your brand first</div>
+          <div class="sell-brand-row">
+            <a class="sell-brand active" href="brand">All</a>
+            <a class="sell-brand" href="../brand/apple">Apple</a>
+            <a class="sell-brand" href="../brand/samsung">Samsung</a>
+            <a class="sell-brand" href="../brand/xiaomi">Xiaomi</a>
+            <a class="sell-brand" href="../brand/vivo">Vivo</a>
+            <a class="sell-brand" href="../brand/oneplus">OnePlus</a>
+            <a class="sell-brand" href="../brand/poco">POCO</a>
+            <a class="sell-brand" href="../brand/motorola">Motorola</a>
+            <a class="sell-brand" href="../brand/oppo">OPPO</a>
+            <a class="sell-brand" href="../brand/nokia">Nokia</a>
+            <a class="sell-brand more-btn" href="../more-brands">All brands →</a>
+          </div>
+
+          <div class="sell-step-inner-card" style="margin-top:16px;">
+            <div class="sell-step-header" style="font-size:1.8rem;">Popular phone models</div>
+            <div id="sellFlowBrandGrid" class="sell-option-grid" style="grid-template-columns:repeat(3,minmax(120px,1fr));"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/sell-flow.js"></script>
+</body>
+</html>

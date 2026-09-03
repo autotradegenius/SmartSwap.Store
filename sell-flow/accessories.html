@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Do you have the following? | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Sell Old Mobile Phone &nbsp;&gt;&nbsp; Sell Old Xiaomi &nbsp;&gt;&nbsp; Accessories</div>
+
+      <div class="sell-main-panel" style="grid-template-columns:1.6fr .9fr;">
+        <div class="sell-panel-left">
+          <div class="sell-step-header">Do you have the following?</div>
+          <p class="sell-step-subtitle">Please select accessories which are available</p>
+
+          <div id="accessoryChoiceList" class="accessory-choice-grid"></div>
+
+          <button id="accessoryContinueBtn" class="btn btn-coral btn-wide" type="button">Continue →</button>
+        </div>
+
+        <div class="sell-panel-right">
+          <div class="device-card-selected">
+            <div class="device-thumb-wrap">
+              <img id="sellFlowSummaryImage" src="https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80" alt="Phone" />
+            </div>
+            <div class="device-meta-text">
+              <div id="accessorySummaryName" class="device-name">Phone</div>
+              <div id="accessorySummaryPrice" class="device-price">₹0</div>
+              <div class="device-seen">11860+ already sold on SmartSwap</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="sellLoginModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-box sell-login-modal" role="dialog" aria-modal="true" aria-labelledby="sellLoginTitle">
+      <button id="sellLoginModalClose" class="modal-close" type="button" aria-label="Close">×</button>
+      <div class="login-left-panel">
+        <div class="login-title" id="sellLoginTitle">Login/Signup</div>
+      </div>
+      <div class="login-right-panel">
+        <div class="device-mini-wrap">
+          <img id="sellLoginImage" src="https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80" alt="Phone" />
+        </div>
+        <div class="login-price-box">
+          <div class="login-model" id="sellLoginModel">Phone</div>
+          <div class="login-selling-price">Selling Price</div>
+          <div class="login-price" id="sellLoginPrice">₹0</div>
+        </div>
+        <div class="login-panel-button">Login to unlock the best price</div>
+        <div class="otp-form">
+          <label>Enter your phone number</label>
+          <div class="phone-input-row">
+            <span>+91</span>
+            <input type="tel" placeholder="Enter your Mobile" />
+          </div>
+        </div>
+        <label class="terms-row">
+          <input type="checkbox" checked />
+          <span>I agree to the <a href="#">Terms and Conditions</a> &amp; <a href="#">Privacy Policy</a></span>
+        </label>
+        <button class="btn btn-coral btn-wide" type="button" onclick="window.location.href='done.html'">CONTINUE</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/sell-flow.js"></script>
+</body>
+</html>

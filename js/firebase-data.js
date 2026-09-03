@@ -2,13 +2,19 @@
   const STORAGE_KEYS = {
     products: 'swapioAdminProducts',
     inventory: 'swapioInventory',
-    returns: 'swapioReturns'
+    returns: 'swapioReturns',
+    phoneCatalog: 'swapioPhoneCatalog',
+    bills: 'swapioBills',
+    billingCounter: 'swapioBillingCounter'
   };
 
   const DOC_PATHS = {
     products: 'catalog',
     inventory: 'inventory',
-    returns: 'returns'
+    returns: 'returns',
+    phoneCatalog: 'phoneCatalog',
+    bills: 'bills',
+    billingCounter: 'billingCounter'
   };
 
   function safeParse(key, fallback) {
@@ -130,6 +136,28 @@
     return Array.isArray(data.inventory) ? data.inventory : [];
   }
 
+  function readPhoneCatalog() {
+    return safeParse(STORAGE_KEYS.phoneCatalog, []);
+  }
+
+  function savePhoneCatalog(items) {
+    setLocalStorage(STORAGE_KEYS.phoneCatalog, items);
+    return syncPhoneCatalogToCloud(items);
+  }
+
+  async function syncPhoneCatalogToCloud(items) {
+    const db = getDb();
+    if (!db) return false;
+    await setDocument('phoneCatalog', { phones: items, updatedAt: Date.now() });
+    return true;
+  }
+
+  async function loadPhoneCatalogFromCloud() {
+    const data = await getDocument('phoneCatalog');
+    if (!data) return null;
+    return Array.isArray(data.phones) ? data.phones : [];
+  }
+
   function readReturns() {
     return safeParse(STORAGE_KEYS.returns, []);
   }
@@ -152,6 +180,56 @@
     return Array.isArray(data.returns) ? data.returns : [];
   }
 
+  function readBills() {
+    return safeParse(STORAGE_KEYS.bills, []);
+  }
+
+  function saveBills(items) {
+    setLocalStorage(STORAGE_KEYS.bills, items);
+    return syncBillsToCloud(items);
+  }
+
+  async function syncBillsToCloud(items) {
+    const db = getDb();
+    if (!db) return false;
+    await setDocument('bills', { bills: items, updatedAt: Date.now() });
+    return true;
+  }
+
+  async function loadBillsFromCloud() {
+    const data = await getDocument('bills');
+    if (!data) return null;
+    return Array.isArray(data.bills) ? data.bills : [];
+  }
+
+  async function getNextBillNumber() {
+    const db = getDb();
+    if (db) {
+      const ref = db.collection('admin').doc(DOC_PATHS.billingCounter || 'billingCounter');
+      try {
+        const result = await db.runTransaction(async transaction => {
+          const snapshot = await transaction.get(ref);
+          const current = Number(snapshot.data()?.value || 0);
+          const next = current + 1;
+          transaction.set(ref, { value: next, updatedAt: Date.now() }, { merge: true });
+          return next;
+        });
+        return `BILL-${String(result).padStart(4, '0')}`;
+      } catch (error) {
+        console.warn('Firebase billing counter failed. Falling back to local bill number generation.', error);
+      }
+    }
+
+    const bills = readBills();
+    let highest = 0;
+    bills.forEach(bill => {
+      const raw = String(bill.billNumber || '').replace(/[^0-9]/g, '');
+      const numeric = Number(raw || 0);
+      if (numeric > highest) highest = numeric;
+    });
+    return `BILL-${String(highest + 1).padStart(4, '0')}`;
+  }
+
   async function saveCustomerSubmission(submission) {
     const db = getDb();
     if (!db) throw new Error('Firebase is not configured yet.');
@@ -170,6 +248,7 @@
     const cloudProducts = await loadProductsFromCloud();
     const cloudInventory = await loadInventoryFromCloud();
     const cloudReturns = await loadReturnsFromCloud();
+    const cloudPhoneCatalog = await loadPhoneCatalogFromCloud();
 
     if (cloudProducts !== null) {
       setLocalStorage(STORAGE_KEYS.products, cloudProducts);
@@ -179,6 +258,13 @@
     }
     if (cloudReturns !== null) {
       setLocalStorage(STORAGE_KEYS.returns, cloudReturns);
+    }
+    if (cloudPhoneCatalog !== null) {
+      setLocalStorage(STORAGE_KEYS.phoneCatalog, cloudPhoneCatalog);
+    }
+    const cloudBills = await loadBillsFromCloud();
+    if (cloudBills !== null) {
+      setLocalStorage(STORAGE_KEYS.bills, cloudBills);
     }
   }
 
@@ -196,10 +282,19 @@
     saveInventory,
     syncInventoryToCloud,
     loadInventoryFromCloud,
+    readPhoneCatalog,
+    savePhoneCatalog,
+    syncPhoneCatalogToCloud,
+    loadPhoneCatalogFromCloud,
     readReturns,
     saveReturns,
     syncReturnsToCloud,
     loadReturnsFromCloud,
+    readBills,
+    saveBills,
+    syncBillsToCloud,
+    loadBillsFromCloud,
+    getNextBillNumber,
     saveCustomerSubmission,
     loadCustomerSubmissions,
     loadAllDataFromCloud,

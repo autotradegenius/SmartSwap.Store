@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Select Phone Brand | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .cashify-brand-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .cashify-brand-card {
+      background: #f7f9f9;
+      border: 1px solid #dfe7ea;
+      border-radius: 14px;
+      min-height: 138px;
+      padding: 10px 8px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      color: #1d2430;
+      transition: all 0.2s ease;
+    }
+
+    .cashify-brand-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 18px -18px rgba(18, 20, 28, 0.45);
+      border-color: #b8c8ce;
+    }
+
+    .cashify-brand-logo {
+      width: 82px;
+      height: 82px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      font-weight: 800;
+      font-size: 0.98rem;
+      letter-spacing: -0.06em;
+      border: 1px solid rgba(17, 24, 39, 0.03);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
+    }
+
+    .brand-apple { background: #fff5ef; color: #111827; }
+    .brand-samsung { background: #eef4ff; color: #0f172a; font-size: 0.9rem; letter-spacing: 0.04em; }
+    .brand-xiaomi { background: #fff4ea; color: #f97316; font-size: 1.15rem; }
+    .brand-vivo { background: #edf7ff; color: #1d9bf0; font-size: 1.18rem; }
+    .brand-oneplus { background: #ebfff4; color: #00a665; font-size: 0.9rem; }
+    .brand-poco { background: #fffaf0; color: #f6a700; font-size: 1.02rem; }
+    .brand-motorola { background: #fff1f2; color: #e11d48; font-size: 0.98rem; }
+    .brand-oppo { background: #ebfff6; color: #10b981; font-size: 1rem; }
+    .brand-nokia { background: #eff6ff; color: #0f172a; font-size: 0.96rem; }
+    .brand-google {
+      background: linear-gradient(135deg, #fffef0 0%, #f6fbff 100%);
+      color: #111827;
+      font-size: 0.9rem;
+      background-clip: border-box;
+    }
+
+    .cashify-brand-name {
+      font-size: 0.82rem;
+      line-height: 1.3;
+      font-weight: 600;
+      color: #1d2430;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .cashify-brand-grid {
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Login &nbsp;&gt;&nbsp; Select Brand</div>
+
+      <div class="sell-main-panel" style="grid-template-columns:1fr;">
+        <div class="sell-panel-left">
+          <div class="sell-title-block">
+            <h1>Select brand first</h1>
+          </div>
+
+          <div class="sell-step-inner-card">
+            <div class="cashify-brand-grid">
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-apple">Apple</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-samsung">SAMSUNG</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-xiaomi">MI</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-vivo">vivo</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-oneplus">ONEPLUS</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-poco">POCO</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-motorola">moto</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-oppo">OPPO</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-nokia">NOKIA</div>
+              </a>
+              <a class="cashify-brand-card" href="step3-model.html">
+                <div class="cashify-brand-logo brand-google">Google</div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>

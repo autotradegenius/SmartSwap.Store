@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tell us more about your device | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Sell Old Mobile Phone &nbsp;&gt;&nbsp; Sell Old Xiaomi &nbsp;&gt;&nbsp; Tell us more about your device</div>
+
+      <div class="sell-main-panel" style="grid-template-columns:1.6fr .9fr;">
+        <div class="sell-panel-left">
+          <div class="sell-step-header">Select screen/body defects that are applicable!</div>
+          <p class="sell-step-subtitle">Please provide correct details</p>
+
+          <div class="sell-option-grid" style="grid-template-columns:repeat(2,minmax(160px,1fr));">
+            <button class="sell-option-card" type="button">
+              <div class="option-figure"><svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="10" width="36" height="58" rx="5"/><path d="M30 18h20M30 58h20M32 70h16"/><path d="M18 38h6M56 38h6"/><path d="M40 26v20M30 36h20"/></g></svg></div>
+              <div class="option-text">Broken/scratch on device screen</div>
+            </button>
+            <button class="sell-option-card" type="button">
+              <div class="option-figure"><svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="10" width="36" height="58" rx="5"/><path d="M28 20h24M28 60h24M30 70h20"/><path d="M34 26v26M46 26v26M28 38h24"/></g></svg></div>
+              <div class="option-text">Dead Spot/visible line and discoloration on screen</div>
+            </button>
+            <button class="sell-option-card" type="button">
+              <div class="option-figure"><svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="10" width="36" height="58" rx="5"/><path d="M30 16l2-4h16l2 4M30 60l2 4h16l2-4M28 32h24M28 48h24"/><path d="M35 24v18M45 24v18"/></g></svg></div>
+              <div class="option-text">Scratch/Dent on device body</div>
+            </button>
+            <button class="sell-option-card" type="button">
+              <div class="option-figure"><svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="10" width="36" height="58" rx="5"/><path d="M30 18h20M30 62h20M24 30h32M24 46h32"/><path d="M34 25v12M46 25v12M34 43v12M46 43v12"/></g></svg></div>
+              <div class="option-text">Device panel missing/broken</div>
+            </button>
+          </div>
+
+          <button id="conditionContinueBtn" class="btn btn-coral btn-wide" type="button">Continue →</button>
+        </div>
+
+        <div class="sell-panel-right">
+          <div class="device-card-selected">
+            <div class="device-thumb-wrap">
+              <img id="sellFlowSummaryImage" src="https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80" alt="Phone" />
+            </div>
+            <div class="device-meta-text">
+              <div id="conditionDeviceName" class="device-name">Phone </div>
+              <div id="conditionPriceValue" class="device-price">₹0</div>
+              <div class="device-seen">11860+ already sold on SmartSwap</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="sellLoginModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-box sell-login-modal" role="dialog" aria-modal="true" aria-labelledby="sellLoginTitle">
+      <button id="sellLoginModalClose" class="modal-close" type="button" aria-label="Close">×</button>
+      <div class="login-left-panel">
+        <div class="login-title" id="sellLoginTitle">Login/Signup</div>
+      </div>
+      <div class="login-right-panel">
+        <div class="device-mini-wrap">
+          <img id="sellLoginImage" src="https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80" alt="Phone" />
+        </div>
+        <div class="login-price-box">
+          <div class="login-model" id="sellLoginModel">Phone</div>
+          <div class="login-selling-price">Selling Price</div>
+          <div class="login-price" id="sellLoginPrice">₹0</div>
+        </div>
+        <div class="login-panel-button">Login to unlock the best price</div>
+        <div class="otp-form">
+          <label>Enter your phone number</label>
+          <div class="phone-input-row">
+            <span>+91</span>
+            <input type="tel" placeholder="Enter your Mobile" />
+          </div>
+        </div>
+        <label class="terms-row">
+          <input type="checkbox" checked />
+          <span>I agree to the <a href="#">Terms and Conditions</a> &amp; <a href="#">Privacy Policy</a></span>
+        </label>
+        <button class="btn btn-coral btn-wide" type="button" onclick="window.location.href='done.html'">CONTINUE</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/sell-flow.js"></script>
+</body>
+</html>

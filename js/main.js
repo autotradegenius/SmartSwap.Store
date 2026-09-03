@@ -8,22 +8,103 @@
    ========================================================== */
 
 // ---------- 1. Load header & footer partials ----------
+function getRootPartialPath(path){
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+function isLiveServerPreview(){
+  try {
+    const hostname = window.location.hostname || '';
+    return window.location.protocol.startsWith('http') && ['localhost', '127.0.0.1', '::1'].includes(hostname);
+  } catch (error) {
+    return false;
+  }
+}
+
+function stripHtmlExtension(value){
+  return typeof value === 'string' ? value.replace(/\.html$/i, '') : value;
+}
+
+function hasFileExtension(value){
+  const cleanValue = value.split('?')[0].split('#')[0];
+  const lastSegment = cleanValue.split('/').pop() || '';
+  return /\.[a-z0-9]+$/i.test(lastSegment);
+}
+
+function normalizeUrlForCurrentServer(value){
+  if(!value || value.startsWith('http') || value.startsWith('#') || value.startsWith('mailto:') || value.startsWith('tel:') || value.startsWith('javascript:')) return value;
+
+  const trimmed = value.trim();
+  if(hasFileExtension(trimmed)) return trimmed;
+
+  let normalized = trimmed.replace(/\/+$/, '');
+  if(normalized.startsWith('/')){
+    normalized = normalized.replace(/^\/+/, '');
+    return isLiveServerPreview() ? `/${normalized}.html` : `/${normalized}`;
+  }
+
+  if(normalized.startsWith('./') || normalized.startsWith('../')){
+    return isLiveServerPreview() ? `${normalized}.html` : normalized;
+  }
+
+  return isLiveServerPreview() ? `/${normalized}.html` : `/${normalized}`;
+}
+
+function rewriteStaticAnchors(){
+  document.querySelectorAll('a[href], link[href], script[src]').forEach(element => {
+    const attr = element.getAttribute('href') || element.getAttribute('src');
+    if(!attr) return;
+    const nextValue = normalizeUrlForCurrentServer(attr);
+    if(nextValue !== attr){
+      if(element.hasAttribute('href')) element.setAttribute('href', nextValue);
+      if(element.hasAttribute('src')) element.setAttribute('src', nextValue);
+    }
+  });
+}
+
+function normalizePartialLinks(container){
+  if(!container) return;
+  const rewrite = (attrName) => {
+    container.querySelectorAll(`[${attrName}]`).forEach(element => {
+      const value = element.getAttribute(attrName);
+      if(!value || value.startsWith('http') || value.startsWith('#') || value.startsWith('mailto:') || value.startsWith('tel:') || value.startsWith('javascript:')) return;
+      const normalized = normalizeUrlForCurrentServer(value);
+      if(normalized !== value) element.setAttribute(attrName, normalized);
+    });
+  };
+  rewrite('href');
+  rewrite('src');
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', rewriteStaticAnchors);
+} else {
+  rewriteStaticAnchors();
+}
+
 async function loadPartials(){
   const headerSlot = document.getElementById('site-header');
   const footerSlot = document.getElementById('site-footer');
 
   async function getPartial(path){
-    const res = await fetch(`${path}?v=2`, {cache:'no-store'});
-    if(!res.ok) throw new Error(`Could not load ${path}`);
-    const html = await res.text();
-    return html.replace(/<!-- Code injected by live-server -->[\s\S]*?<\/script>/gi, '');
+    const fullPath = getRootPartialPath(path) + '?v=2';
+    try {
+      const res = await fetch(fullPath, {cache:'no-store'});
+      if(!res.ok) throw new Error(`Could not load ${path}`);
+      const html = await res.text();
+      return html.replace(/<!-- Code injected by live-server -->[\s\S]*?<\/script>/gi, '');
+    } catch (error) {
+      return '';
+    }
   }
 
   if(headerSlot){
     headerSlot.innerHTML = await getPartial('partials/header.html');
+    normalizePartialLinks(headerSlot);
   }
   if(footerSlot){
     footerSlot.innerHTML = await getPartial('partials/footer.html');
+    normalizePartialLinks(footerSlot);
   }
 
   // Once header/footer are in the page, wire up everything that lives inside them
@@ -56,21 +137,51 @@ function setupHamburger(){
 }
 
 // ---------- 4. Ticker (scrolling recent prices) ----------
-const tickerData = [
-  {name:'iPhone 13 128GB', price:'₹28,500'},
-  {name:'Galaxy S21', price:'₹14,200'},
-  {name:'OnePlus 9', price:'₹11,800'},
-  {name:'iPhone 11', price:'₹16,200'},
-  {name:'Redmi Note 11 Pro', price:'₹6,900'},
-  {name:'Galaxy S22 Ultra', price:'₹32,400'},
-  {name:'iPhone 12 Mini', price:'₹19,600'},
-  {name:'OnePlus Nord 2', price:'₹9,300'},
-];
+function getTickerData(){
+  const fallback = [
+    {name:'iPhone 13 128GB', price:'28500'},
+    {name:'Galaxy S21', price:'14200'},
+    {name:'OnePlus 9', price:'11800'},
+    {name:'iPhone 11', price:'16200'},
+    {name:'Redmi Note 11 Pro', price:'6900'},
+    {name:'Galaxy S22 Ultra', price:'32400'},
+    {name:'iPhone 12 Mini', price:'19600'},
+    {name:'OnePlus Nord 2', price:'9300'}
+  ];
+
+  try {
+    const models = [];
+    if(typeof window.readSellModels === 'function') {
+      models.push(...window.readSellModels());
+    }
+    const saved = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
+    Object.values(saved).forEach(model => {
+      if(model && model.id && model.name) models.push(model);
+    });
+
+    if(!models.length) return fallback;
+
+    const merged = new Map();
+    models.forEach(model => {
+      const value = Number(model.price || 0);
+      if(model && model.id && model.name && value > 0) {
+        merged.set(model.id, { name: model.name, price: String(value) });
+      }
+    });
+
+    const list = Array.from(merged.values()).slice(0, 12);
+    return list.length ? list : fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
 function buildTicker(){
   const track = document.getElementById('tickerTrack');
   if(!track) return;
-  const row = tickerData.map(d => `<span><b>${d.name}</b> · Up to <em>${d.price}</em></span>`).join('');
-  track.innerHTML = row + row; // duplicated for seamless loop
+  const items = getTickerData();
+  const row = items.map(d => `<span><b>${d.name}</b> · Up to <em>₹${new Intl.NumberFormat('en-IN').format(Number(d.price || 0))}</em></span>`).join('');
+  track.innerHTML = row + row;
 }
 
 function ensureLoginUI(){

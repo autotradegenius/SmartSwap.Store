@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tell us more about your device | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Login &nbsp;&gt;&nbsp; Brand &nbsp;&gt;&nbsp; Model &nbsp;&gt;&nbsp; Device Condition</div>
+
+      <div class="sell-main-panel" style="grid-template-columns:1.6fr .9fr;">
+        <div class="sell-panel-left">
+          <div class="sell-step-header">Tell us more about your device?</div>
+          <p class="sell-step-subtitle">Please answer a few questions about your device.</p>
+
+          <div class="sell-step-questions">
+            <div class="sell-step-question">
+              <h4>Are you able to make and receive calls?</h4>
+              <p>Check your device for cellular network connectivity issues.</p>
+              <div class="sell-radio-row">
+                <button class="sell-radio-btn active" type="button">Yes</button>
+                <button class="sell-radio-btn" type="button">No</button>
+              </div>
+            </div>
+
+            <div class="sell-step-question">
+              <h4>Is your device's touch screen working properly?</h4>
+              <p>Check the touch screen functionality of your phone.</p>
+              <div class="sell-radio-row">
+                <button class="sell-radio-btn active" type="button">Yes</button>
+                <button class="sell-radio-btn" type="button">No</button>
+              </div>
+            </div>
+
+            <div class="sell-step-question">
+              <h4>Is your phone's screen original?</h4>
+              <p>Pick "Yes" if screen was never changed or was changed by Authorized Service Center. Pick "No" if screen was changed at local shop.</p>
+              <div class="sell-radio-row">
+                <button class="sell-radio-btn active" type="button">Yes</button>
+                <button class="sell-radio-btn" type="button">No</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-coral btn-wide" onclick="window.location.href='step6-screen.html'">Continue →</button>
+        </div>
+
+        <div class="sell-panel-right">
+          <div class="device-card-selected">
+            <div class="device-thumb-wrap">
+              <img src="https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80" alt="Apple iPhone 6S" />
+            </div>
+            <div class="device-meta-text">
+              <div class="device-name">Apple iPhone 6S (2 GB/32 GB)</div>
+              <div class="device-price">₹2,310</div>
+              <div class="device-seen">11860+ already sold on SmartSwap</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>

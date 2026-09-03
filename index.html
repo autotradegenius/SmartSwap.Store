@@ -14,94 +14,107 @@
 <div id="site-header"></div>
 
 <main>
-  <section class="hero wrap">
-    <div class="hero-grid">
-      <div class="hero-copy">
-        <div class="eyebrow">Certified Refurbished · Made for India</div>
-        <h1>Your phone's <em>next chapter</em> starts here.</h1>
-        <p>Sell your old phone for an instant, fair price. Buy a certified refurbished phone at up to 40% off. Or get it fixed by verified technicians — all in one place.</p>
+  <section class="cashify-hero wrap">
+    <div class="cashify-hero-inner">
+      <div class="cashify-hero-left">
+        <div class="hero-subtitle">— Certified refurbished • made for India</div>
 
-        <div class="tab-switch" id="heroTabs">
-          <button class="active" data-tab="sell">Sell</button>
-          <button data-tab="buy">Buy</button>
-          <button data-tab="repair">Repair</button>
+        <div class="hero-tab-switch" id="heroTabs">
+          <button class="active" type="button" data-tab="sell">Sell</button>
+          <button type="button" data-tab="buy">Buy</button>
+          <button type="button" data-tab="repair">Repair</button>
         </div>
 
         <div class="tab-panel active" id="tab-sell">
-          <div class="hero-search">
-            <input type="text" placeholder="Search your phone to sell — e.g. iPhone 12">
-            <a class="btn btn-coral" href="sell.html">Get Price</a>
+          <h1>Your phone’s <span>next</span> chapter starts here.</h1>
+          <p>Sell your old phone for an instant, fair price. Buy with a certified refurbished phone at up to 40% off. Or get it fixed by verified technicians — all in one place.</p>
+          <div class="cashify-search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
+            <input type="text" placeholder="Search your phone to sell — e.g. iPhone 12" aria-label="Search phone to sell">
           </div>
-          <div class="brand-row">
-            <a class="brand-chip" href="sell.html">Apple</a>
-            <a class="brand-chip" href="sell.html">Samsung</a>
-            <a class="brand-chip" href="sell.html">OnePlus</a>
-            <a class="brand-chip" href="sell.html">Xiaomi</a>
-            <a class="brand-chip" href="sell.html">More brands</a>
+          <div class="cashify-cta-row">
+            <a href="sell-flow/brand" class="btn btn-ink">Get Price</a>
           </div>
         </div>
 
         <div class="tab-panel" id="tab-buy">
-          <div class="hero-search">
-            <input type="text" placeholder="Search refurbished phones — e.g. Galaxy S22">
-            <a class="btn btn-coral" href="buy.html">Browse</a>
+          <h1>Find a phone that feels <span>new</span> again.</h1>
+          <p>Browse certified refurbished devices, tested and quality-checked before they reach your hands. Great value without compromising on trust.</p>
+          <div class="cashify-search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
+            <input type="text" placeholder="Search model or brand — e.g. Galaxy S23" aria-label="Search phone to buy">
           </div>
-          <div class="brand-row">
-            <a class="brand-chip" href="buy.html">Under ₹10,000</a>
-            <a class="brand-chip" href="buy.html">Under ₹20,000</a>
-            <a class="brand-chip" href="buy.html">iPhones</a>
-            <a class="brand-chip" href="buy.html">All phones</a>
+          <div class="cashify-cta-row">
+            <a href="buy" class="btn btn-ink">Browse phones</a>
           </div>
         </div>
 
         <div class="tab-panel" id="tab-repair">
-          <div class="hero-search">
-            <input type="text" placeholder="What needs fixing? — e.g. cracked screen">
-            <a class="btn btn-coral" href="repair.html">Book Repair</a>
+          <h1>Fix your phone, <span>without</span> the stress.</h1>
+          <p>From cracked screens to battery and camera issues, expert technicians fix it fast with clear pricing and warranty-backed service.</p>
+          <div class="cashify-search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
+            <input type="text" placeholder="Tell us the issue — screen, battery, camera" aria-label="Search repair issue">
           </div>
-          <div class="brand-row">
-            <a class="brand-chip" href="repair.html">Screen</a>
-            <a class="brand-chip" href="repair.html">Battery</a>
-            <a class="brand-chip" href="repair.html">Camera</a>
-            <a class="brand-chip" href="repair.html">All services</a>
+          <div class="cashify-cta-row">
+            <a href="repair" class="btn btn-ink">Book repair</a>
+          </div>
+        </div>
+
+        <div class="cashify-brand-block">
+          <div class="brand-divider">Or choose a brand</div>
+          <div class="cashify-brand-grid">
+            <a class="cashify-brand-card" href="brand/apple">Apple</a>
+            <a class="cashify-brand-card" href="brand/samsung">Samsung</a>
+            <a class="cashify-brand-card" href="brand/xiaomi">Xiaomi</a>
+            <a class="cashify-brand-card" href="brand/vivo">Vivo</a>
+            <a class="cashify-brand-card more-brand" href="more-brands">More brands</a>
           </div>
         </div>
       </div>
 
-      <div class="device-stage" aria-label="Smartphone showcase">
-        <div class="hero-phones single-phone">
-          <img
-            class="phone-shot phone-main"
-            src="assets/phones/phone-hero-3.png"
-            alt="Smartphone product image"
-          >
-          <div class="hero-glow"></div>
+      <div class="cashify-hero-right">
+        <div class="cashify-portrait-wrap">
+          <div class="cashify-circle"></div>
+          <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80" alt="Happy customer holding phone">
+          <div class="cashify-money money-one">₹</div>
+          <div class="cashify-money money-two">₹</div>
+          <div class="cashify-money money-three">₹</div>
         </div>
       </div>
     </div>
   </section>
 
   <section class="section wrap">
-    <div class="section-head">
-      <div class="eyebrow">How it works</div>
-      <h2>Three steps. No showroom queues.</h2>
-      <p>Whether you're selling, buying, or repairing — the process stays this simple.</p>
-    </div>
-    <div class="steps">
-      <div class="step">
-        <span class="num">01</span>
-        <h3>Tell us what you need</h3>
-        <p>Pick your phone's brand and model, or describe the issue you want fixed. Takes under a minute.</p>
-      </div>
-      <div class="step">
-        <span class="num">02</span>
-        <h3>Get an instant quote</h3>
-        <p>See your sale price, refurbished pricing, or repair estimate upfront — no back-and-forth calls.</p>
-      </div>
-      <div class="step">
-        <span class="num">03</span>
-        <h3>Doorstep pickup or delivery</h3>
-        <p>A technician or courier comes to you. Get paid, get your device, or get it fixed — same day, most times.</p>
+    <div class="cashify-process">
+      <h2>How SmartSwap Works</h2>
+      <div class="cashify-work-grid">
+        <div class="cashify-step-box">
+          <div class="cashify-step-badge">1</div>
+          <div class="cashify-step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M10 18h4"/><path d="M11 7h2"/></svg>
+          </div>
+          <h3>Check Price</h3>
+          <p>Select your device &amp; tell us about its current condition, and our AI will tailor the perfect price for you.</p>
+        </div>
+
+        <div class="cashify-step-box">
+          <div class="cashify-step-badge">2</div>
+          <div class="cashify-step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-7 9 7"/><path d="M5 9v9h14v-9"/><path d="M9 14h6"/></svg>
+          </div>
+          <h3>Schedule Pickup</h3>
+          <p>Book a free pickup from your home or work at a time slot that best suits your convenience.</p>
+        </div>
+
+        <div class="cashify-step-box">
+          <div class="cashify-step-badge">3</div>
+          <div class="cashify-step-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h18"/><path d="M12 3v18"/><path d="M5 7l14 10"/><path d="M19 7L5 17"/></svg>
+          </div>
+          <h3>Get Paid</h3>
+          <p>Did we mention you get paid as soon as our executive picks up your device? It's instant payment all the way.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -133,19 +146,19 @@
       <h2>What are you here to do?</h2>
     </div>
     <div class="grid-3">
-      <a class="path-card" href="sell.html">
+      <a class="path-card" href="sell-flow/brand">
         <span class="tag">Sell a phone</span>
         <h3>Turn your old phone into cash</h3>
         <p>Instant price, free pickup, payment on verification. No haggling.</p>
         <span class="go">Check your price →</span>
       </a>
-      <a class="path-card" href="buy.html">
+      <a class="path-card" href="buy">
         <span class="tag">Buy a phone</span>
         <h3>Certified refurbished, real savings</h3>
         <p>Every device is graded, tested, and backed by a 30-day warranty.</p>
         <span class="go">Browse phones →</span>
       </a>
-      <a class="path-card" href="repair.html">
+      <a class="path-card" href="repair">
         <span class="tag">Repair a phone</span>
         <h3>Fixed by verified technicians</h3>
         <p>Screen, battery, camera, charging port — transparent pricing, no surprises.</p>
@@ -167,14 +180,18 @@
 <script src="js/main.js"></script>
 <script>
   // Hero tab switch (Sell / Buy / Repair) — page-specific, so it lives here not in main.js
-  document.getElementById('heroTabs').addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-tab]');
-    if(!btn) return;
-    document.querySelectorAll('#heroTabs button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-  });
+  const heroTabs = document.getElementById('heroTabs');
+  if (heroTabs) {
+    heroTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-tab]');
+      if(!btn) return;
+      document.querySelectorAll('#heroTabs button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const target = document.getElementById('tab-' + btn.dataset.tab);
+      if (target) target.classList.add('active');
+    });
+  }
 </script>
 </body>
 </html>

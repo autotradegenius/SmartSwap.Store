@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Select Storage & Get Price | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Sell Old Mobile Phone &nbsp;&gt;&nbsp; Sell Old Xiaomi &nbsp;&gt;&nbsp; Select storage</div>
+
+      <div class="sell-main-panel" style="grid-template-columns:1fr;">
+        <div class="sell-panel-left" style="padding-right:0;">
+          <div class="sell-title-block" style="text-align:center;">
+            <h1 id="variantModelTitle" style="font-size:2.6rem;">Loading...</h1>
+          </div>
+
+          <div class="sell-step-inner-card" style="max-width:900px; margin:0 auto;">
+            <div style="display:flex; align-items:center; justify-content:center; gap:24px; flex-wrap:wrap;">
+              <div class="device-thumb-wrap" style="width:180px; height:180px; margin:0;">
+                <img id="variantModelImage" src="https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80" alt="Phone" style="max-height:130px;" />
+              </div>
+              <div style="text-align:left; min-width:260px;">
+                <div style="font-size:0.85rem; color:#58707b; margin-bottom:12px; font-weight:500;">Select model / storage variant</div>
+                <div id="variantMemoryOptions" class="sell-option-grid" style="grid-template-columns:repeat(2,minmax(80px,1fr)); gap:12px; margin-bottom:24px;"></div>
+                <div id="variantModelPrice" style="font-size:2rem; font-weight:700; color:#1a1d27; font-family:var(--display); margin-bottom:8px;">₹0</div>
+                <div id="variantModelMeta" style="font-size:0.85rem; color:#58707b; margin-bottom:18px;">0+ already sold on SmartSwap</div>
+                <button id="variantGetPriceButton" class="btn-coral-lg" type="button">Get Exact Value →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/sell-flow.js"></script>
+</body>
+</html>

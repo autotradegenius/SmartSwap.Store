@@ -22,12 +22,52 @@
   </section>
   <section id="adminDashboard" hidden>
     <div class="admin-head"><div><div class="eyebrow">Private dashboard</div><h1>Control centre</h1></div><button id="adminLogout" class="btn btn-ghost">Log out</button></div>
-    <nav class="admin-tabs" aria-label="Admin sections"><button class="admin-tab active" data-admin-tab="catalog">Phones &amp; requests</button><button class="admin-tab" data-admin-tab="inventory">Inventory</button><button class="admin-tab" data-admin-tab="returns">Returns</button></nav>
+    <nav class="admin-tabs" aria-label="Admin sections"><button class="admin-tab active" data-admin-tab="catalog">Phones &amp; requests</button><button class="admin-tab" data-admin-tab="inventory">Inventory</button><button class="admin-tab" data-admin-tab="billing">Billing</button><button class="admin-tab" data-admin-tab="returns">Returns</button><button class="admin-tab" data-admin-tab="finance">Profit &amp; stock</button></nav>
     <div id="adminCatalogTab" class="admin-tab-panel">
-    <div class="form-panel admin-form-panel"><div><h3 id="productFormTitle">Add phone</h3><p>Add price, details, and separate front/back photos. Both photos appear together on the customer catalog.</p></div><form id="adminProductForm" class="form-fields"><input name="name" placeholder="Phone name" required><input name="brand" placeholder="Brand, e.g. Apple" required><input name="price" type="number" placeholder="Selling price" required><input name="oldPrice" type="number" placeholder="Original price (Buy page)"><input name="grade" placeholder="Grade, e.g. Superb"><input name="warranty" placeholder="Warranty, e.g. 30-day"><input name="details" placeholder="Details, e.g. 128GB · Superb · 30-day warranty"><label class="admin-file-label">Front photo<input name="frontPhoto" type="file" accept="image/*"></label><label class="admin-file-label">Back photo<input name="backPhoto" type="file" accept="image/*"></label><input name="editIndex" type="hidden" value=""><div class="admin-form-actions"><button class="btn btn-coral" type="submit">Add phone</button><button id="cancelEdit" class="btn btn-ghost-dark" type="button" hidden>Cancel edit</button></div></form></div>
+    <div class="form-panel admin-form-panel"><div><h3 id="productFormTitle">Add phone</h3><p>Add the phone brand, model/variant, selling price, condition, and photos. This is the customer-facing listing shown on site.</p></div><form id="adminProductForm" class="form-fields">
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Brand</span>
+        <select name="brand" required style="flex:1;"><option value="">Select brand first</option><option>Apple</option><option>Samsung</option><option>Xiaomi</option><option>Vivo</option><option>OnePlus</option><option>Motorola</option><option>OPPO</option><option>Nokia</option><option value="OTHER">Other Brand (custom name)</option></select>
+      </label>
+      <input name="otherBrandName" placeholder="Enter custom brand name (for Other Brand option)" id="otherBrandName" style="display:none;">
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Model</span>
+        <input name="name" placeholder="e.g. iPhone 6" required style="flex:1;">
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Price (₹)</span>
+        <input name="price" type="number" placeholder="e.g. 1850" required style="flex:1;">
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Condition</span>
+        <input name="condition" placeholder="e.g. Superb, Good, Fair" style="flex:1;">
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Grade</span>
+        <input name="grade" placeholder="e.g. Superb" style="flex:1;">
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Warranty</span>
+        <input name="warranty" placeholder="e.g. 30-day" style="flex:1;">
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Storage</span>
+        <input name="details" placeholder="e.g. 16 GB" style="flex:1;">
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Front photo</span>
+        <input name="frontPhoto" type="file" accept="image/*" style="flex:1;">
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;">
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Back photo</span>
+        <input name="backPhoto" type="file" accept="image/*" style="flex:1;">
+      </label>
+      <input name="editIndex" type="hidden" value="">
+      <div class="admin-form-actions"><button class="btn btn-coral" type="submit">Add phone</button><button id="cancelEdit" class="btn btn-ghost-dark" type="button" hidden>Cancel edit</button></div>
+    </form></div>
     <div class="admin-catalog-grid">
-      <section class="admin-section"><div class="admin-section-head"><h2>Sell phone prices</h2><button class="btn btn-ghost" onclick="location.href='sell.html'">View Sell page</button></div><div id="adminSellModels" class="admin-list"></div></section>
-      <section class="admin-section"><div class="admin-section-head"><h2>Buy phone details</h2><button class="btn btn-ghost" onclick="location.href='buy.html'">View Buy page</button></div><div id="adminBuyModels" class="admin-list"></div></section>
+      <section class="admin-section"><div class="admin-section-head"><h2>Buy phone catalog</h2><div style="display:flex; gap:8px;"><button id="addBuyPhoneBtn" class="btn btn-coral" type="button">Add phone</button><button id="viewBuyListBtn" class="btn btn-ghost" type="button">View list</button></div></div><div id="adminBuyModels" class="admin-list"></div></section>
+      <section class="admin-section"><div class="admin-section-head"><h2>Sell phone catalog</h2><div style="display:flex; gap:8px;"><button id="addSellPhoneBtn" class="btn btn-coral" type="button">Add sell phone</button><button id="viewSellListBtn" class="btn btn-ghost" type="button">View list</button></div></div><div id="adminSellModels" class="admin-list"></div></section>
     </div>
     <section class="admin-section"><div class="admin-section-head"><h2>Sell and Repair requests</h2><button id="refreshSubmissions" class="btn btn-ghost">Refresh</button></div><div id="adminSubmissions" class="admin-list"></div></section>
     </div>
@@ -37,10 +77,53 @@
         <div class="inventory-summary" id="inventorySummary"></div><div id="inventoryList" class="inventory-table-wrap"></div>
       </section>
     </div>
+    <div id="adminBillingTab" class="admin-tab-panel" hidden>
+      <section class="admin-section inventory-section"><div class="admin-section-head"><div><div class="eyebrow">Sales ledger</div><h2>Billing & sold phones</h2></div></div>
+        <form id="billingForm" class="inventory-form">
+          <input id="billingBillNumber" name="billNumber" placeholder="Invoice no." readonly>
+          <input name="customerName" placeholder="Name" required>
+          <input name="customerPhone" placeholder="Contact">
+          <input name="customerAddress" placeholder="Address">
+          <select name="paymentMethod" required>
+            <option value="">Payment method</option>
+            <option value="cash">Cash</option>
+            <option value="online">Online</option>
+            <option value="upi">UPI</option>
+          </select>
+          <label class="date-field"><span>Sale date</span><input name="saleDate" type="date" required></label>
+          <select id="billingModelInput" name="model" required>
+            <option value="">Select available inventory phone</option>
+          </select>
+          <input name="imei" placeholder="IMEI / serial number" required>
+          <input name="quantity" type="number" min="1" value="1" placeholder="Quantity" required>
+          <input name="salePrice" type="number" placeholder="Sold price" required>
+          <textarea name="notes" placeholder="Bill notes, warranty, or remarks" rows="2"></textarea>
+          <div class="inventory-form-actions">
+            <button class="btn btn-coral" type="button" id="addBillingItem">Add item</button>
+            <button class="btn btn-ghost" type="button" id="clearBillingItems">Clear items</button>
+            <button class="btn btn-coral" type="button" id="saveBillingButton">Save bill</button>
+            <button id="downloadBillBackup" class="btn btn-ghost" type="button">Download backup</button>
+            <button id="cancelBillingEdit" class="btn btn-ghost-dark" type="button" hidden>Cancel edit</button>
+          </div>
+        </form>
+        <div id="billingItemsList" class="inventory-table-wrap" style="margin-top:16px;"></div>
+        <div id="billingPrintPreview" style="display:none; background:#fff; padding:20px; margin-top:20px; border:1px solid #e6eaf0; border-radius:12px;"></div>
+        <div id="billingList" class="inventory-table-wrap" style="margin-top:18px;"></div>
+      </section>
+    </div>
     <div id="adminReturnsTab" class="admin-tab-panel" hidden>
       <section class="admin-section inventory-section"><div class="admin-section-head"><div><div class="eyebrow">Return register</div><h2>Phone returns</h2></div><button id="exportReturns" class="btn btn-ghost">Export returns CSV</button></div>
         <form id="returnForm" class="inventory-form"><input name="model" placeholder="Phone model" required><input name="customer" placeholder="Customer / buyer"><label class="date-field"><span>Buy date</span><input name="buyDate" type="date" required></label><label class="date-field"><span>Return date</span><input name="returnDate" type="date" required></label><select name="reason" id="returnReason" required><option value="" disabled selected>Return reason</option><option>Customer changed mind</option><option>Device issue</option><option>Wrong model delivered</option><option>Damage in delivery</option><option value="other">Other</option></select><input name="customReason" id="customReturnReason" placeholder="Write your return reason" hidden><input name="notes" placeholder="Additional return notes"><div class="inventory-form-actions"><button class="btn btn-coral" type="submit">Add return</button></div></form>
         <div id="returnList" class="inventory-table-wrap"></div>
+      </section>
+    </div>
+    <div id="adminFinanceTab" class="admin-tab-panel" hidden>
+      <section class="admin-section inventory-section">
+        <div class="admin-section-head"><div><div class="eyebrow">Profit & stock</div><h2>Finance overview</h2></div></div>
+        <div id="financeSummary" class="inventory-summary"></div>
+        <div id="financeOverview" class="finance-stats" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin:18px 0 20px;"></div>
+        <div id="financeMonthlyReport" style="margin-top:16px;"></div>
+        <div id="financeList" class="inventory-table-wrap" style="margin-top:18px;"></div>
       </section>
     </div>
   </section>
@@ -53,3 +136,15 @@
 <script src="/js/admin.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
