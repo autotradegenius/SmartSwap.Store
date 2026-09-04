@@ -63,14 +63,22 @@
 
         <div class="cashify-brand-block">
           <div class="brand-divider">Or choose a brand</div>
-          <div class="cashify-brand-grid">
-            <a class="cashify-brand-card" href="brand/apple">Apple</a>
-            <a class="cashify-brand-card" href="brand/samsung">Samsung</a>
-            <a class="cashify-brand-card" href="brand/xiaomi">Xiaomi</a>
-            <a class="cashify-brand-card" href="brand/vivo">Vivo</a>
-            <a class="cashify-brand-card more-brand" href="more-brands">More brands</a>
-          </div>
+          <div class="cashify-brand-grid brand-logo-grid" data-brand-picker="compact" aria-label="Top phone brands"></div>
         </div>
+
+        <section class="home-flash-sale" aria-labelledby="homeFlashSaleTitle">
+          <div class="flash-sale-heading">
+            <h3 id="homeFlashSaleTitle">Flash Sale</h3>
+            <a href="buy" class="flash-sale-view-all">View all</a>
+          </div>
+          <div class="home-sale-filters" id="homeSaleFilters" aria-label="Filter flash sale phones">
+            <button type="button" class="active" data-home-filter="all">All</button>
+            <button type="button" data-home-filter="under-10k">Under ₹10,000</button>
+            <button type="button" data-home-filter="10k-20k">₹10,000–₹20,000</button>
+            <button type="button" data-home-filter="above-20k">Above ₹20,000</button>
+          </div>
+          <div class="flash-sale-grid" id="homeFlashSaleGrid"></div>
+        </section>
       </div>
 
       <div class="cashify-hero-right">
@@ -175,10 +183,63 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/firebase-auth.js"></script>
 <script src="js/firebase-data.js"></script>
+<script src="js/brand-experience.js"></script>
 <script src="js/site-config.js"></script>
 <script src="js/chatbot-responses.js?v=2"></script>
 <script src="js/main.js"></script>
 <script>
+  const homeBuyModels = [
+    {name:'iPhone 12', spec:'128GB · Apple', now:'₹32,999', was:'₹52,000', grade:'Superb', warranty:'30-day', image:'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?auto=format&fit=crop&w=500&q=85'},
+    {name:'Galaxy S21 FE', spec:'128GB · Samsung', now:'₹21,499', was:'₹34,000', grade:'Good', warranty:'30-day'},
+    {name:'OnePlus 9R', spec:'128GB · OnePlus', now:'₹17,999', was:'₹28,000', grade:'Superb', warranty:'30-day'},
+    {name:'Redmi Note 12', spec:'128GB · Xiaomi', now:'₹9,999', was:'₹15,500', grade:'Fair', warranty:'15-day', image:'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=500&q=85'},
+    {name:'Pixel 7', spec:'128GB · Google', now:'₹29,999', was:'₹45,000', grade:'Superb', warranty:'30-day'}
+  ];
+  const homeCatalogProducts = window.swapioData?.readProducts ? window.swapioData.readProducts() : JSON.parse(localStorage.getItem('swapioAdminProducts') || '[]');
+  homeCatalogProducts.filter(product => product.visible !== false).forEach(product => {
+    homeBuyModels.push({
+      name: product.name,
+      spec: product.details || `${product.brand} · Admin listing`,
+      now: `₹${Number(product.price || 0).toLocaleString('en-IN')}`,
+      was: '',
+      grade: 'Superb',
+      warranty: '30-day',
+      image: product.photos?.[0] || ''
+    });
+  });
+  const homeSaleGrid = document.getElementById('homeFlashSaleGrid');
+  const homeGradeClass = {Superb:'pill-green', Good:'pill-gold', Fair:'pill-coral'};
+  function renderHomeSale(models) {
+    homeSaleGrid.innerHTML = models.length ? models.slice(0, 5).map(model => `
+      <div class="product-card">
+        <div class="${model.image ? 'phone-image-stack' : 'phone-icon'}">${model.image ? `<img src="${model.image}" alt="${model.name}" loading="lazy" onerror="this.parentElement.innerHTML=window.swapioPhoneSVG || ''">` : (window.swapioPhoneSVG || '')}</div>
+        <h4>${model.name}</h4>
+        <div class="spec">${model.spec}</div>
+        <div class="badge-row"><span class="pill ${homeGradeClass[model.grade]}">${model.grade}</span><span class="pill pill-gold">${model.warranty} warranty</span></div>
+        <div class="price-row"><span class="now">${model.now}</span>${model.was ? `<span class="was">${model.was}</span>` : ''}</div>
+        <a class="btn btn-coral" href="buy" style="width:100%;text-align:center;">View phone</a>
+      </div>`).join('') : '<p class="home-sale-empty">No phones available in this range yet.</p>';
+  }
+  function filterHomeSale(filter) {
+    renderHomeSale(homeBuyModels.filter(model => {
+      const price = Number(model.now.replace(/[^0-9]/g, ''));
+      if (filter === 'under-10k') return price < 10000;
+      if (filter === '10k-20k') return price >= 10000 && price <= 20000;
+      if (filter === 'above-20k') return price > 20000;
+      return true;
+    }));
+  }
+  if (homeSaleGrid) {
+    filterHomeSale('all');
+    document.getElementById('homeSaleFilters').addEventListener('click', event => {
+      const button = event.target.closest('[data-home-filter]');
+      if (!button) return;
+      document.querySelectorAll('#homeSaleFilters button').forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      filterHomeSale(button.dataset.homeFilter);
+    });
+  }
+
   // Hero tab switch (Sell / Buy / Repair) — page-specific, so it lives here not in main.js
   const heroTabs = document.getElementById('heroTabs');
   if (heroTabs) {

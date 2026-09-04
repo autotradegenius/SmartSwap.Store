@@ -170,11 +170,17 @@
       phoneCatalog = [];
     }
 
+    const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
     const merged = new Map();
     [...catalog, ...phoneCatalog, ...BASE_MODELS, ...(window.DEFAULT_MODELS || [])].forEach(model => {
       if (!model || !model.name || !model.brand) return;
-      const key = getCatalogModelKey(model);
-      if (!merged.has(key)) merged.set(key, { ...model, hidden: Boolean(model.hidden) });
+      const normalizedName = String(model.name).trim();
+      const normalizedBrand = /^poco\b/i.test(normalizedName) ? 'Poco' : model.brand;
+      const normalizedModel = { ...model, brand: normalizedBrand, hidden: Boolean(model.hidden) };
+      const override = overrides[normalizedModel.id];
+      if (override) Object.assign(normalizedModel, override, { brand: /^poco\b/i.test(String(override.name || normalizedName)) ? 'Poco' : (override.brand || normalizedBrand) });
+      const key = getCatalogModelKey(normalizedModel);
+      if (!merged.has(key)) merged.set(key, normalizedModel);
     });
 
     const normalizedCatalog = Array.from(merged.values());
@@ -227,6 +233,13 @@
     if (!grid) return;
 
     const brand = getBrandFromQuery();
+    const damageMode = new URLSearchParams(window.location.search).get('damage') === '1';
+      const brandPicker = document.querySelector('[data-brand-picker]');
+      const pageTitle = document.querySelector('.sell-title-block h1');
+      if (brand !== 'all') {
+        if (brandPicker) brandPicker.hidden = true;
+        if (pageTitle) pageTitle.textContent = `Select ${brand.charAt(0).toUpperCase()}${brand.slice(1)} model`;
+      }
     const models = getSellModels().filter(model => brand === 'all' || normalizeCatalogValue(model.brand) === normalizeCatalogValue(brand));
 
     if (!models.length) {
@@ -235,7 +248,7 @@
     }
 
     grid.innerHTML = models.map(model => {
-      const href = `variant.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}`;
+      const href = `variant.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}${damageMode ? '&damage=1' : ''}`;
       return `
         <a class="model-card" href="${href}">
           <img src="${model.image || 'https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80'}" alt="${model.name}" />
@@ -311,6 +324,7 @@
   function buildVariantPage() {
     const model = getModelFromQuery();
     const titleEl = document.getElementById('variantModelTitle');
+    const breadcrumbEl = document.getElementById('variantBreadcrumb');
     const imageEl = document.getElementById('variantModelImage');
     const priceEl = document.getElementById('variantModelPrice');
     const metaEl = document.getElementById('variantModelMeta');
@@ -320,6 +334,7 @@
     if (!model || !titleEl || !imageEl || !priceEl || !metaEl || !optionWrap || !button) return;
 
     const storageParam = new URLSearchParams(window.location.search).get('memory');
+    const damageQuery = new URLSearchParams(window.location.search).get('damage') === '1' ? '&damage=1' : '';
     const storageOptions = getModelStorageOptions(model);
     const defaultStorage = storageOptions.includes(storageParam) ? storageParam : storageOptions[0];
 
@@ -327,12 +342,13 @@
       const exact = getModelStoragePrice(model, storage);
       priceEl.textContent = `₹${new Intl.NumberFormat('en-IN').format(exact)}`;
       metaEl.textContent = `${new Intl.NumberFormat('en-IN').format(Math.max(1200, exact + 1800))}+ already sold on SmartSwap`;
-      const nextUrl = `condition.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}&memory=${encodeURIComponent(storage)}`;
+      const nextUrl = `condition.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}&memory=${encodeURIComponent(storage)}${damageQuery}`;
       button.onclick = () => { window.location.href = nextUrl; };
       button.dataset.storage = storage;
     }
 
     titleEl.textContent = model.name;
+    if (breadcrumbEl) breadcrumbEl.textContent = `Home > Sell Old Mobile Phone > Sell Old ${model.brand} > Select storage`;
     imageEl.src = model.image || imageEl.src;
     imageEl.alt = model.name;
     optionWrap.innerHTML = storageOptions.map(storage => `
@@ -677,6 +693,16 @@
 
   function setupLoginPage() {
     const params = new URLSearchParams(window.location.search);
+    if (params.get('damaged') === '1') {
+      const damagedBrand = params.get('brand') || 'Phone';
+      const damagedMemory = params.get('memory') || '';
+      const damagedOffer = Number(params.get('offer') || 0).toLocaleString('en-IN');
+      const damagedName = document.getElementById('loginDeviceName');
+      const damagedPrice = document.getElementById('loginPrice');
+      if (damagedName) damagedName.textContent = `Damaged ${damagedBrand} ${damagedMemory}`;
+      if (damagedPrice) damagedPrice.textContent = `₹${damagedOffer}`;
+      return;
+    }
     const model = getModelFromQuery();
     const selectedMemory = params.get('memory') || '64 GB';
     const savedState = getSellState();

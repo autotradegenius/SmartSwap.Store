@@ -24,35 +24,36 @@
     <div class="admin-head"><div><div class="eyebrow">Private dashboard</div><h1>Control centre</h1></div><button id="adminLogout" class="btn btn-ghost">Log out</button></div>
     <nav class="admin-tabs" aria-label="Admin sections"><button class="admin-tab active" data-admin-tab="catalog">Phones &amp; requests</button><button class="admin-tab" data-admin-tab="inventory">Inventory</button><button class="admin-tab" data-admin-tab="billing">Billing</button><button class="admin-tab" data-admin-tab="returns">Returns</button><button class="admin-tab" data-admin-tab="finance">Profit &amp; stock</button></nav>
     <div id="adminCatalogTab" class="admin-tab-panel">
-    <div class="form-panel admin-form-panel"><div><h3 id="productFormTitle">Add phone</h3><p>Add the phone brand, model/variant, selling price, condition, and photos. This is the customer-facing listing shown on site.</p></div><form id="adminProductForm" class="form-fields">
+    <div class="form-panel admin-form-panel"><h3 id="productFormTitle" hidden>Add phone</h3><form id="adminProductForm" class="form-fields">
       <label style="display:flex;align-items:center;gap:10px;">
         <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Brand</span>
-        <select name="brand" required style="flex:1;"><option value="">Select brand first</option><option>Apple</option><option>Samsung</option><option>Xiaomi</option><option>Vivo</option><option>OnePlus</option><option>Motorola</option><option>OPPO</option><option>Nokia</option><option value="OTHER">Other Brand (custom name)</option></select>
+        <select name="brand" required style="flex:1;"><option value="">Select brand first</option><option>Apple</option><option>Samsung</option><option>Xiaomi</option><option>Poco</option><option>Vivo</option><option>OnePlus</option><option>Motorola</option><option>OPPO</option><option>Nokia</option><option>Google</option><option>Realme</option><option>Lenovo</option><option>Honor</option><option>Asus</option><option>LG</option><option>Infinix</option><option>Tecno</option><option>iQOO</option><option>Nothing</option><option value="OTHER">Other Brand (custom name)</option></select>
       </label>
       <input name="otherBrandName" placeholder="Enter custom brand name (for Other Brand option)" id="otherBrandName" style="display:none;">
       <label style="display:flex;align-items:center;gap:10px;">
-        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Model</span>
+        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Model name</span>
         <input name="name" placeholder="e.g. iPhone 6" required style="flex:1;">
       </label>
-      <label style="display:flex;align-items:center;gap:10px;">
-        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Price (₹)</span>
-        <input name="price" type="number" placeholder="e.g. 1850" required style="flex:1;">
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;">
-        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Condition</span>
-        <input name="condition" placeholder="e.g. Superb, Good, Fair" style="flex:1;">
-      </label>
+      <fieldset class="storage-variants-fieldset">
+        <legend>Storage variants and prices</legend>
+        <div class="storage-variant-list">
+          <label class="storage-variant-row"><input type="checkbox" name="storageVariant" value="2/32"><span>2/32</span><span class="storage-price-label">Price for 2/32 (₹)</span><input class="storage-price" data-storage-price="2/32" aria-label="2/32 price" type="number" min="0" placeholder="Enter price" disabled></label>
+          <label class="storage-variant-row"><input type="checkbox" name="storageVariant" value="4/64"><span>4/64</span><span class="storage-price-label">Price for 4/64 (₹)</span><input class="storage-price" data-storage-price="4/64" aria-label="4/64 price" type="number" min="0" placeholder="Enter price" disabled></label>
+          <label class="storage-variant-row"><input type="checkbox" name="storageVariant" value="6/128"><span>6/128</span><span class="storage-price-label">Price for 6/128 (₹)</span><input class="storage-price" data-storage-price="6/128" aria-label="6/128 price" type="number" min="0" placeholder="Enter price" disabled></label>
+          <label class="storage-variant-row"><input type="checkbox" name="storageVariant" value="6/256"><span>6/256</span><span class="storage-price-label">Price for 6/256 (₹)</span><input class="storage-price" data-storage-price="6/256" aria-label="6/256 price" type="number" min="0" placeholder="Enter price" disabled></label>
+          <label class="storage-variant-row"><input type="checkbox" name="storageVariant" value="8/256"><span>8/256</span><span class="storage-price-label">Price for 8/256 (₹)</span><input class="storage-price" data-storage-price="8/256" aria-label="8/256 price" type="number" min="0" placeholder="Enter price" disabled></label>
+          <label class="storage-variant-row"><input type="checkbox" name="storageVariant" value="8/512"><span>8/512</span><span class="storage-price-label">Price for 8/512 (₹)</span><input class="storage-price" data-storage-price="8/512" aria-label="8/512 price" type="number" min="0" placeholder="Enter price" disabled></label>
+          <label class="storage-variant-row custom-storage-row"><input type="checkbox" name="storageVariant" value="custom-1" data-custom-storage="true"><input class="storage-variant-name" data-storage-name="custom-1" type="text" placeholder="e.g. 3/32"><span class="storage-price-label">Custom variant price (₹)</span><input class="storage-price" data-storage-price="custom-1" aria-label="Custom variant price" type="number" min="0" placeholder="Enter price" disabled></label>
+          <label class="storage-variant-row custom-storage-row"><input type="checkbox" name="storageVariant" value="custom-2" data-custom-storage="true"><input class="storage-variant-name" data-storage-name="custom-2" type="text" placeholder="e.g. 4/128"><span class="storage-price-label">Custom variant price (₹)</span><input class="storage-price" data-storage-price="custom-2" aria-label="Custom variant price" type="number" min="0" placeholder="Enter price" disabled></label>
+        </div>
+      </fieldset>
       <label style="display:flex;align-items:center;gap:10px;">
         <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Grade</span>
-        <input name="grade" placeholder="e.g. Superb" style="flex:1;">
+        <input name="grade" placeholder="e.g. A, Good, minor scratches" style="flex:1;">
       </label>
       <label style="display:flex;align-items:center;gap:10px;">
         <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Warranty</span>
         <input name="warranty" placeholder="e.g. 30-day" style="flex:1;">
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;">
-        <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Storage</span>
-        <input name="details" placeholder="e.g. 16 GB" style="flex:1;">
       </label>
       <label style="display:flex;align-items:center;gap:10px;">
         <span style="min-width:100px;font-size:13px;color:#9aa4b2;">Front photo</span>
@@ -133,6 +134,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="/js/firebase-config.js"></script>
 <script src="/js/firebase-data.js"></script>
+<script src="/js/sell-flow-brands.js"></script>
+<script src="/js/sell-master-catalog.js"></script>
+<script src="/js/buy-master-catalog.js"></script>
 <script src="/js/admin.js"></script>
 </body>
 </html>

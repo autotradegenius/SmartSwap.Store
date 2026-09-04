@@ -284,8 +284,14 @@ function readPhoneCatalog(){
   const merged = new Map();
   [...storedCatalog, ...sellCatalog, ...DEFAULT_MODELS].forEach(phone => {
     if (!phone || !phone.name || !phone.brand) return;
-    const key = getCatalogModelKey(phone);
-    if (!merged.has(key)) merged.set(key, phone);
+    const normalizedName = String(phone.name).trim();
+    const normalizedBrand = /^poco\b/i.test(normalizedName) ? 'Poco' : phone.brand;
+    const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
+    const normalizedPhone = { ...phone, brand: normalizedBrand };
+    const override = overrides[normalizedPhone.id];
+    if (override) Object.assign(normalizedPhone, override, { brand: /^poco\b/i.test(String(override.name || normalizedName)) ? 'Poco' : (override.brand || normalizedBrand) });
+    const key = getCatalogModelKey(normalizedPhone);
+    if (!merged.has(key)) merged.set(key, normalizedPhone);
   });
 
   const catalog = Array.from(merged.values()).filter(phone => !phone.hidden);
@@ -354,7 +360,23 @@ function initBrandCatalog(){
     const brand = gridElement.getAttribute('data-brand-catalog');
     const containerId = gridElement.id || 'model-grid';
     renderBrandCatalog(brand, containerId);
+    renderSellBenefits(gridElement);
   }
+}
+
+function renderSellBenefits(gridElement){
+  if (gridElement.parentElement.querySelector('[data-sell-benefits]')) return;
+  const section = document.createElement('section');
+  section.className = 'benefits-band';
+  section.dataset.sellBenefits = '';
+  section.innerHTML = `
+    <div class="benefits-heading"><span class="eyebrow">SmartSwap.Store</span><h2>Why sell with SmartSwap?</h2></div>
+    <div class="benefits-grid">
+      <article><span class="benefit-icon">&#10003;</span><h3>Safe &amp; Secure</h3><p>Every phone and customer detail is handled through a verified process.</p></article>
+      <article><span class="benefit-icon">&#8377;</span><h3>Instant Payment</h3><p>Get a clear price and quick payment after the device check.</p></article>
+      <article><span class="benefit-icon">&#9733;</span><h3>Best Price</h3><p>Transparent grading and competitive market-based pricing.</p></article>
+    </div>`;
+  gridElement.insertAdjacentElement('afterend', section);
 }
 
 if (document.readyState === 'loading') {

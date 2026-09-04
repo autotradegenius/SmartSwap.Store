@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sell Damaged Phone | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Sell Damaged Phone</div>
+      <div class="sell-main-panel" style="grid-template-columns:1fr;">
+        <div class="sell-panel-left">
+          <div class="sell-title-block">
+            <h1>Sell Damaged Phone</h1>
+            <p class="sell-step-subtitle">Select your phone brand and memory. We accept damaged phones for evaluation.</p>
+          </div>
+
+          <label class="damaged-field-label" for="damagedBrand">Phone brand</label>
+          <select id="damagedBrand" class="damaged-select">
+            <option value="">Select brand</option>
+            <option>Apple</option><option>Xiaomi</option><option>Samsung</option><option>Vivo</option>
+            <option>OnePlus</option><option>OPPO</option><option>Realme</option><option>Motorola</option>
+            <option>Lenovo</option><option>Nokia</option><option>Honor</option><option>Asus</option>
+            <option>Google</option><option>POCO</option><option>LG</option><option>Infinix</option>
+            <option>Tecno</option><option>iQOO</option><option>Nothing</option>
+          </select>
+
+          <div class="damaged-field-label">Phone memory</div>
+          <div class="sell-option-grid damaged-memory-grid">
+            <button class="sell-option-card" type="button" data-memory="32 GB"><div class="option-text">32 GB</div></button>
+            <button class="sell-option-card" type="button" data-memory="64 GB"><div class="option-text">64 GB</div></button>
+            <button class="sell-option-card" type="button" data-memory="128 GB"><div class="option-text">128 GB</div></button>
+            <button class="sell-option-card" type="button" data-memory="256 GB"><div class="option-text">256 GB</div></button>
+            <button class="sell-option-card" type="button" data-memory="512 GB"><div class="option-text">512 GB</div></button>
+          </div>
+
+          <a id="damagedContinue" class="btn btn-coral btn-wide damaged-continue" href="login.html" aria-disabled="true">Sell Phone →</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    const brandSelect = document.getElementById('damagedBrand');
+    const memoryButtons = document.querySelectorAll('[data-memory]');
+    const continueLink = document.getElementById('damagedContinue');
+    function updateDamagedLink() {
+      const memory = document.querySelector('[data-memory].selected')?.dataset.memory || '';
+      if (!brandSelect.value || !memory) {
+        continueLink.setAttribute('aria-disabled', 'true');
+        return;
+      }
+      const memoryPrice = {'32 GB':299, '64 GB':399, '128 GB':599, '256 GB':899, '512 GB':1299}[memory] || 299;
+      continueLink.href = `done.html?damaged=1&brand=${encodeURIComponent(brandSelect.value)}&memory=${encodeURIComponent(memory)}&offer=${memoryPrice}`;
+      continueLink.removeAttribute('aria-disabled');
+    }
+    brandSelect.addEventListener('change', updateDamagedLink);
+    memoryButtons.forEach(button => button.addEventListener('click', () => {
+      memoryButtons.forEach(item => item.classList.remove('selected'));
+      button.classList.add('selected');
+      updateDamagedLink();
+    }));
+  </script>
+</body>
+</html>

@@ -58,7 +58,7 @@
               <span>I agree to the <a href="#" style="color:#1ac0b1; text-decoration:none;">Terms and Conditions</a> &amp; <a href="#" style="color:#1ac0b1; text-decoration:none;">Privacy Policy</a></span>
             </label>
 
-            <button class="btn btn-coral btn-wide" onclick="window.location.href='done.html'" style="width:100%; margin-bottom:12px;">Continue →</button>
+            <button id="sellLoginContinue" class="btn btn-coral btn-wide" onclick="window.location.href='done.html'" style="width:100%; margin-bottom:12px;">Continue →</button>
           </div>
         </div>
       </div>
@@ -75,5 +75,16 @@
   <script src="../js/site-config.js"></script>
   <script src="../js/main.js"></script>
   <script src="../js/sell-flow.js"></script>
+  <script>
+    const loginParams = new URLSearchParams(window.location.search);
+    if (loginParams.get('damaged') === '1') {
+      const brand = loginParams.get('brand') || 'Phone';
+      const memory = loginParams.get('memory') || '';
+      const offer = Number(loginParams.get('offer') || 0).toLocaleString('en-IN');
+      document.getElementById('loginDeviceName').textContent = `Damaged ${brand} ${memory}`;
+      document.getElementById('loginPrice').textContent = `₹${offer}`;
+      document.getElementById('sellLoginContinue').onclick = () => { window.location.href = `done.html?damaged=1&brand=${encodeURIComponent(brand)}&memory=${encodeURIComponent(memory)}&offer=${encodeURIComponent(loginParams.get('offer') || '')}`; };
+    }
+  </script>
 </body>
 </html>

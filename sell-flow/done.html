@@ -17,8 +17,15 @@
       <div class="sell-main-panel" style="grid-template-columns:1fr; text-align:center; padding:48px 24px;">
         <div>
           <div style="font-size:3rem; font-weight:700; color:#1a1d27; font-family:var(--display); margin-bottom:12px;">Thanks!</div>
-          <div style="font-size:1.3rem; color:#4a5763; margin-bottom:24px;">Your SmartSwap sell request is submitted successfully.</div>
-          <button class="btn btn-coral" onclick="window.location.href='../index.html'">Back to Home</button>
+          <div id="doneMessage" style="font-size:1.3rem; color:#4a5763; margin-bottom:12px;">Your SmartSwap sell request is submitted successfully.</div>
+          <div id="doneOffer" style="font-size:1.8rem; font-weight:700; color:#ff5d3a; margin-bottom:24px;" hidden></div>
+          <div id="damagedContactField" hidden style="max-width:360px;margin:0 auto 18px;text-align:left;">
+            <label for="damagedCustomerPhone" style="display:block;margin-bottom:7px;font-weight:600;color:#1a1d27;">Your contact number</label>
+            <input id="damagedCustomerPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="Enter your 10-digit number" style="width:100%;padding:12px;border:1px solid #d0d8df;border-radius:8px;font-size:1rem;">
+            <small id="damagedPhoneError" style="display:block;color:#d94b35;margin-top:6px;" hidden>Please enter a valid 10-digit number.</small>
+          </div>
+          <button id="damagedSellNow" class="btn btn-coral" type="button" hidden>Sell Now</button>
+          <button id="doneHomeButton" class="btn btn-ghost" type="button" onclick="window.location.href='../index.html'">Back to Home</button>
         </div>
       </div>
     </section>
@@ -33,5 +40,58 @@
   <script src="../js/firebase-data.js"></script>
   <script src="../js/site-config.js"></script>
   <script src="../js/main.js"></script>
+  <script>
+    const doneParams = new URLSearchParams(window.location.search);
+    if (doneParams.get('damaged') === '1') {
+      const brand = doneParams.get('brand') || 'phone';
+      const memory = doneParams.get('memory') || '';
+      const offer = Number(doneParams.get('offer') || 0).toLocaleString('en-IN');
+      document.getElementById('doneMessage').textContent = `Your damaged ${brand} ${memory} sell request is submitted successfully.`;
+      const offerEl = document.getElementById('doneOffer');
+      offerEl.textContent = `Estimated damaged-phone offer: ₹${offer}`;
+      offerEl.hidden = false;
+      const sellButton = document.getElementById('damagedSellNow');
+      const homeButton = document.getElementById('doneHomeButton');
+      const contactField = document.getElementById('damagedContactField');
+      const phoneInput = document.getElementById('damagedCustomerPhone');
+      const phoneError = document.getElementById('damagedPhoneError');
+      sellButton.hidden = false;
+      homeButton.hidden = true;
+      contactField.hidden = false;
+      sellButton.addEventListener('click', async () => {
+        const phone = phoneInput.value.replace(/\D/g, '');
+        if (!/^[6-9]\d{9}$/.test(phone)) {
+          phoneError.hidden = false;
+          phoneInput.focus();
+          return;
+        }
+        phoneError.hidden = true;
+        sellButton.disabled = true;
+        sellButton.textContent = 'Saving...';
+        const submission = {
+          type: 'damaged-phone',
+          brand,
+          memory,
+          offer: Number(doneParams.get('offer') || 0),
+          customerPhone: phone,
+          createdAt: Date.now(),
+          status: 'New'
+        };
+        try {
+          if (!window.swapioData?.saveCustomerSubmission) throw new Error('Submission service is unavailable.');
+          await window.swapioData.saveCustomerSubmission(submission);
+          document.getElementById('doneMessage').textContent = 'Your damaged-phone sale request has been sent to SmartSwap.Store.';
+          sellButton.textContent = 'Request Sent';
+        } catch (error) {
+          const pending = JSON.parse(localStorage.getItem('swapioDamagedSubmissions') || '[]');
+          pending.unshift(submission);
+          localStorage.setItem('swapioDamagedSubmissions', JSON.stringify(pending));
+          document.getElementById('doneMessage').textContent = 'Request saved on this device. Please contact SmartSwap.Store to complete the sale.';
+          sellButton.disabled = false;
+          sellButton.textContent = 'Try Again';
+        }
+      });
+    }
+  </script>
 </body>
 </html>

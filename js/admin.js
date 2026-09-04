@@ -88,7 +88,8 @@ const defaultSellModels = [
 ];
 function readSellModels(){
   const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
-  return defaultSellModels.map(model => ({...model, ...(overrides[model.id] || {})}));
+  const defaults = Array.isArray(window.DEFAULT_MODELS) && window.DEFAULT_MODELS.length ? window.DEFAULT_MODELS : defaultSellModels;
+  return defaults.map(model => ({...model, ...(overrides[model.id] || {})})).filter(model => !model.hidden);
 }
 function saveSellModels(models){
   localStorage.setItem('swapioSellModels', JSON.stringify(Object.fromEntries(models.map(model => [model.id, model]))));
@@ -105,7 +106,11 @@ const defaultBuyModels = [
 ];
 function readBuyModels(){
   const overrides = JSON.parse(localStorage.getItem('swapioBuyModels') || '{}');
-  return defaultBuyModels.map(model => ({...model, ...(overrides[model.id] || {})}));
+  const allModels = [...defaultBuyModels];
+  (Array.isArray(window.BUY_MASTER_MODELS) ? window.BUY_MASTER_MODELS : []).forEach(model => {
+    if (!allModels.some(entry => entry.id === model.id)) allModels.push({...model});
+  });
+  return allModels.map(model => ({...model, ...(overrides[model.id] || {})})).filter(model => !model.hidden);
 }
 function saveBuyModels(models){
   localStorage.setItem('swapioBuyModels', JSON.stringify(Object.fromEntries(models.map(model => [model.id, model]))));
@@ -705,10 +710,57 @@ async function renderAdminSubmissions(){
     <article class="admin-item submission-item"><div><span class="pill pill-coral">${item.type}</span><h4>${item.name || 'Customer'}</h4><p>${item.phone || item.email || 'No contact'} · ${item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}</p><small>${item.model || item.issue || item.details || 'No details'}${item.price ? ` · ${item.price}` : ''}${item.payment ? ` · ${item.payment}` : ''}${item.utr ? ` · UTR: ${item.utr}` : ''}${item.paymentStatus ? ` · ${item.paymentStatus}` : ''}</small></div><div class="admin-photos">${(item.photos || []).map(photo => `<img src="${photo}" alt="Customer upload">`).join('')}</div></article>`).join('') : '<p class="admin-empty">No customer submissions yet.</p>';
 }
 
-// Sell phone catalog: shows EVERY sell phone regardless of where it came from —
-// the 8 built-in preset models (readSellModels/swapioSellModels) as well as
-// anything added through "Add sell phone" (readSellCatalog/swapioSellCatalog).
-// Every row is clickable and loads straight into the form above for editing.
+const adminCatalogViews = { buy: null, sell: null };
+
+function catalogBrandLabel(model){
+  if (/^poco\b/i.test(String(model.name || '').trim())) return 'Poco';
+  const brand = String(model.brand || '').trim();
+  if(brand) return brand.charAt(0).toUpperCase() + brand.slice(1);
+  const specBrand = String(model.spec || '').split('·').pop().trim();
+  return specBrand || 'Other';
+}
+
+function catalogVariantSummary(model){
+  if(Array.isArray(model.storageVariants) && model.storageVariants.length){
+    return model.storageVariants.map(item => `${item.storage}: ₹${Number(item.price || 0).toLocaleString('en-IN')}`).join(' · ');
+  }
+  return model.spec || 'No storage variant added';
+}
+
+function renderCatalogBrandPicker(list, models, type, title){
+  const brands = [...new Map(models.map(model => {
+    const label = catalogBrandLabel(model);
+    return [label.toLowerCase(), label];
+  })).entries()].sort((first, second) => first[1].localeCompare(second[1]));
+  list.innerHTML = brands.length ? `
+    <div class="admin-catalog-browser">
+      <div class="admin-catalog-browser-head"><strong>Select ${title} brand</strong><span>${models.length} models</span></div>
+      <div class="admin-brand-grid">${brands.map(([key, label]) => {
+        const count = models.filter(model => catalogBrandLabel(model).toLowerCase() === key).length;
+        return `<button class="admin-brand-card" type="button" data-catalog-brand="${key}" data-catalog-type="${type}"><strong>${label}</strong><span>${count} ${count === 1 ? 'model' : 'models'}</span></button>`;
+      }).join('')}</div>
+    </div>` : `<p class="admin-empty">No phones in ${type} catalog yet.</p>`;
+}
+
+function renderCatalogModels(list, models, type, view){
+  const filtered = models.filter(model => catalogBrandLabel(model).toLowerCase() === view);
+  const rows = filtered.map(model => type === 'sell' ? `
+    <article class="admin-item" data-sell-type="${model.source}" data-sell-ref="${model.source === 'catalog' ? model.catalogIndex : model.id}" style="cursor:pointer;">
+      ${model.image ? `<img src="${model.image}" alt="${model.name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">` : '<div class="admin-thumb">PHONE</div>'}
+      <div><h4>${model.name}${model.hidden ? ' (Hidden)' : ''}</h4><p>${catalogVariantSummary(model)}</p></div>
+      <button class="btn btn-ghost" type="button" data-sell-edit>Edit</button>
+      ${model.source === 'catalog' ? `<button class="btn btn-ghost" type="button" data-toggle-sell-catalog="${model.catalogIndex}">${model.hidden ? 'Show' : 'Hide'}</button><button class="btn btn-ghost" type="button" data-delete-sell-catalog="${model.catalogIndex}">Delete</button>` : `<button class="btn btn-ghost" type="button" data-delete-sell-preset="${model.id}">Delete</button>`}
+    </article>` : `
+    <article class="admin-item" data-buy-type="${model.custom ? 'custom' : 'buy'}" data-buy-ref="${model.custom ? model.customIndex : model.id}" style="cursor:pointer;">
+      ${model.image ? `<img src="${model.image}" alt="${model.name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">` : '<div class="admin-thumb">PHONE</div>'}
+      <div><h4>${model.name}${model.custom && model.visible === false ? ' (Hidden)' : ''}</h4><p>${catalogVariantSummary(model)}${model.grade ? ` · ${model.grade}` : ''}${model.warranty ? ` · ${model.warranty} warranty` : ''}</p></div>
+      <button class="btn btn-ghost" type="button" data-buy-edit>Edit</button>
+      ${model.custom ? `<button class="btn btn-ghost" type="button" data-toggle-product="${model.customIndex}">${model.visible ? 'Hide' : 'Show'}</button><button class="btn btn-ghost" type="button" data-delete-product="${model.customIndex}">Delete</button>` : `<button class="btn btn-ghost" type="button" data-delete-buy-preset="${model.id}">Delete</button>`}
+    </article>`).join('');
+  list.innerHTML = `<div class="admin-catalog-browser-head"><button class="btn btn-ghost" type="button" data-catalog-back="${type}">Back to brands</button><strong>${filtered.length ? catalogBrandLabel(filtered[0]) : view}</strong><span>${filtered.length} models</span></div>${rows || '<p class="admin-empty">No models in this brand.</p>'}`;
+}
+
+// Show all sell models through a brand-first browser.
 function renderAdminSellModels(){
   const list = document.getElementById('adminSellModels');
   if(!list) return;
@@ -719,13 +771,8 @@ function renderAdminSellModels(){
     list.innerHTML = '<p class="admin-empty">No phones in sell catalog yet. Use "Add sell phone" above.</p>';
     return;
   }
-  list.innerHTML = models.map(model => `
-    <article class="admin-item" data-sell-type="${model.source}" data-sell-ref="${model.source === 'catalog' ? model.catalogIndex : model.id}" style="cursor:pointer;">
-      ${model.image ? `<img src="${model.image}" alt="${model.name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">` : '<div class="admin-thumb">PHONE</div>'}
-      <div><h4>${model.name}${model.hidden ? ' (Hidden)' : ''}${model.source === 'preset' ? ' (Preset)' : ''}</h4><p>${model.brand || ''} ${model.brand ? '·' : ''} ${model.spec || ''} · Up to ₹${Number(model.price || 0).toLocaleString('en-IN')}</p></div>
-      <button class="btn btn-ghost" type="button" data-sell-edit>Edit</button>
-      ${model.source === 'catalog' ? `<button class="btn btn-ghost" type="button" data-toggle-sell-catalog="${model.catalogIndex}">${model.hidden ? 'Show' : 'Hide'}</button><button class="btn btn-ghost" type="button" data-delete-sell-catalog="${model.catalogIndex}">Delete</button>` : ''}
-    </article>`).join('');
+  if(adminCatalogViews.sell) renderCatalogModels(list, models, 'sell', adminCatalogViews.sell);
+  else renderCatalogBrandPicker(list, models, 'sell', 'sell phone');
 }
 
 // Buy phone catalog: merges the fixed buy-model list with any custom phones
@@ -751,13 +798,8 @@ function renderAdminBuyModels(){
     list.innerHTML = '<p class="admin-empty">No phones in buy catalog yet. Use "Add phone" above.</p>';
     return;
   }
-  list.innerHTML = models.map(model => `
-    <article class="admin-item" data-buy-type="${model.custom ? 'custom' : 'buy'}" data-buy-ref="${model.custom ? model.customIndex : model.id}" style="cursor:pointer;">
-      ${model.image ? `<img src="${model.image}" alt="${model.name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">` : '<div class="admin-thumb">PHONE</div>'}
-      <div><h4>${model.name}${model.custom && model.visible === false ? ' (Hidden)' : ''}</h4><p>${model.spec || ''} · ₹${Number(model.price || 0).toLocaleString('en-IN')}${model.grade ? ` · ${model.grade}` : ''}${model.warranty ? ` · ${model.warranty} warranty` : ''}</p></div>
-      <button class="btn btn-ghost" type="button" data-buy-edit>Edit</button>
-      ${model.custom ? `<button class="btn btn-ghost" type="button" data-toggle-product="${model.customIndex}">${model.visible ? 'Hide' : 'Show'}</button><button class="btn btn-ghost" type="button" data-delete-product="${model.customIndex}">Delete</button>` : ''}
-    </article>`).join('');
+  if(adminCatalogViews.buy) renderCatalogModels(list, models, 'buy', adminCatalogViews.buy);
+  else renderCatalogBrandPicker(list, models, 'buy', 'buy phone');
 }
 
 function readPhoneCatalog(){
@@ -930,11 +972,43 @@ function setupAdmin(){
 
   function resetProductForm(){
     productForm.reset();
+    productForm.querySelectorAll('.storage-price').forEach(input => { input.disabled = true; input.value = ''; });
     productForm.elements.editIndex.value = '';
     productFormTitle.textContent = 'Add phone';
     productForm.querySelector('button[type="submit"]').textContent = 'Add phone';
     cancelEdit.hidden = true;
     updateBrandInputVisibility();
+  }
+
+  productForm.querySelectorAll('input[name="storageVariant"]').forEach(checkbox => checkbox.addEventListener('change', () => {
+    const priceInput = productForm.querySelector(`[data-storage-price="${checkbox.value}"]`);
+    priceInput.disabled = !checkbox.checked;
+    if(!checkbox.checked) priceInput.value = '';
+  }));
+
+  function getModelStorageVariants(model){
+    if(Array.isArray(model.storageVariants) && model.storageVariants.length) return model.storageVariants;
+    const legacy = String(model.details || model.spec || '').split('·')[0].trim();
+    const match = legacy.match(/(16|32|64|128|256|512)\s*GB/i);
+    return match ? [{storage: match[1] === '16' ? '2/32' : match[1] === '32' ? '2/32' : match[1] === '64' ? '4/64' : match[1] === '128' ? '6/128' : '6/256', price: model.price || ''}] : [];
+  }
+
+  function fillStorageVariants(model){
+    const variants = getModelStorageVariants(model);
+    const fixedValues = new Set(['2/32', '4/64', '6/128', '6/256', '8/256', '8/512']);
+    const customVariants = variants.filter(item => !fixedValues.has(String(item.storage)));
+    let customIndex = 0;
+    productForm.querySelectorAll('input[name="storageVariant"]').forEach(checkbox => {
+      const customName = checkbox.dataset.customStorage === 'true' ? productForm.querySelector(`[data-storage-name="${checkbox.value}"]`) : null;
+      const stored = checkbox.dataset.customStorage === 'true'
+        ? customVariants[customIndex++]
+        : variants.find(item => String(item.storage) === checkbox.value);
+      checkbox.checked = Boolean(stored);
+      const priceInput = productForm.querySelector(`[data-storage-price="${checkbox.value}"]`);
+      priceInput.disabled = !stored;
+      priceInput.value = stored ? stored.price : '';
+      if(customName) customName.value = stored ? stored.storage : '';
+    });
   }
 
   cancelEdit.addEventListener('click', resetProductForm);
@@ -948,6 +1022,19 @@ function setupAdmin(){
       data.brand = data.otherBrandName || 'Other';
     }
     delete data.otherBrandName;
+    const storageVariants = Array.from(productForm.querySelectorAll('input[name="storageVariant"]:checked')).map(checkbox => {
+      const priceInput = productForm.querySelector(`[data-storage-price="${checkbox.value}"]`);
+      const nameInput = checkbox.dataset.customStorage === 'true' ? productForm.querySelector(`[data-storage-name="${checkbox.value}"]`) : null;
+      return {storage: nameInput ? nameInput.value.trim() : checkbox.value, price: priceInput.value};
+    });
+    if(!storageVariants.length || storageVariants.some(item => !item.storage || item.price === '')){
+      window.alert('Select at least one storage variant, enter its name if custom, and add its price.');
+      return;
+    }
+    data.storageVariants = storageVariants;
+    data.details = storageVariants.map(item => item.storage).join(', ');
+    data.price = storageVariants[0].price;
+    delete data.storageVariant;
     
     const editIndex = data.editIndex;
     delete data.editIndex;
@@ -968,7 +1055,9 @@ function setupAdmin(){
       const buyId = editIndex.slice(4);
       const buyModel = buyModels.find(model => model.id === buyId);
       buyModel.name = data.name;
+      buyModel.brand = data.brand;
       buyModel.spec = data.details || data.brand;
+      buyModel.storageVariants = storageVariants;
       buyModel.price = data.price;
       buyModel.oldPrice = data.oldPrice;
       buyModel.grade = data.grade;
@@ -981,7 +1070,9 @@ function setupAdmin(){
       const sellId = editIndex.slice(5);
       const sellModel = sellModels.find(model => model.id === sellId);
       sellModel.name = data.name;
+      sellModel.brand = data.brand;
       sellModel.spec = data.details || data.brand;
+      sellModel.storageVariants = storageVariants;
       sellModel.price = data.price;
       sellModel.image = frontImage || sellModel.image || '';
       sellModel.backImage = backImage || sellModel.backImage || '';
@@ -994,6 +1085,9 @@ function setupAdmin(){
         name: data.name,
         brand: (data.brand || '').toLowerCase(),
         spec: data.details || '',
+        storageVariants,
+        grade: data.grade || '',
+        warranty: data.warranty || '',
         price: data.price,
         image: frontImage || '',
         hidden: false
@@ -1047,6 +1141,16 @@ function setupAdmin(){
   document.getElementById('adminBuyModels').addEventListener('click', event => {
     const toggle = event.target.closest('[data-toggle-product]');
     const remove = event.target.closest('[data-delete-product]');
+    const presetRemove = event.target.closest('[data-delete-buy-preset]');
+    if(presetRemove){
+      const id = presetRemove.dataset.deleteBuyPreset;
+      if(!window.confirm('Remove this Buy catalog model?')) return;
+      const overrides = JSON.parse(localStorage.getItem('swapioBuyModels') || '{}');
+      overrides[id] = {...(overrides[id] || {}), hidden:true};
+      localStorage.setItem('swapioBuyModels', JSON.stringify(overrides));
+      renderAdminBuyModels();
+      return;
+    }
     if(toggle || remove){
       const products = readProducts();
       if(toggle) products[Number(toggle.dataset.toggleProduct)].visible = !products[Number(toggle.dataset.toggleProduct)].visible;
@@ -1063,11 +1167,9 @@ function setupAdmin(){
       const product = readProducts()[Number(ref)];
       if(!product) return;
       productForm.elements.name.value = product.name;
-      productForm.elements.price.value = product.price;
-      productForm.elements.condition.value = product.condition || '';
       productForm.elements.grade.value = product.grade || '';
       productForm.elements.warranty.value = product.warranty || '';
-      productForm.elements.details.value = product.details || '';
+      fillStorageVariants(product);
       productForm.elements.editIndex.value = `custom:${ref}`;
       setBrandSelectValue(product.brand);
       productForm.elements.frontPhoto.value = '';
@@ -1080,9 +1182,8 @@ function setupAdmin(){
       const model = readBuyModels().find(entry => entry.id === ref);
       if(!model) return;
       productForm.elements.name.value = model.name;
-      setBrandSelectValue(brandFromSpec(model.spec));
-      productForm.elements.price.value = model.price;
-      productForm.elements.details.value = model.spec || '';
+      setBrandSelectValue(model.brand || brandFromSpec(model.spec));
+      fillStorageVariants(model);
       productForm.elements.grade.value = model.grade || '';
       productForm.elements.warranty.value = model.warranty || '';
       productForm.elements.editIndex.value = `buy:${model.id}`;
@@ -1097,6 +1198,16 @@ function setupAdmin(){
         document.getElementById('adminSellModels').addEventListener('click', event => {
     const toggle = event.target.closest('[data-toggle-sell-catalog]');
     const remove = event.target.closest('[data-delete-sell-catalog]');
+    const presetRemove = event.target.closest('[data-delete-sell-preset]');
+    if(presetRemove){
+      const id = presetRemove.dataset.deleteSellPreset;
+      if(!window.confirm('Remove this Sell catalog model?')) return;
+      const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
+      overrides[id] = {...(overrides[id] || {}), hidden:true};
+      localStorage.setItem('swapioSellModels', JSON.stringify(overrides));
+      renderAdminSellModels();
+      return;
+    }
     if(toggle || remove){
       const catalog = readSellCatalog();
       if(toggle){
@@ -1124,8 +1235,9 @@ function setupAdmin(){
       if(!model) return;
       productForm.elements.name.value = model.name;
       setBrandSelectValue(model.brand);
-      productForm.elements.price.value = model.price;
-      productForm.elements.details.value = model.spec || '';
+      productForm.elements.grade.value = model.grade || '';
+      productForm.elements.warranty.value = model.warranty || '';
+      fillStorageVariants(model);
       productForm.elements.frontPhoto.value = '';
       productForm.elements.backPhoto.value = '';
       productForm.elements.editIndex.value = `sellcat:${idx}`;
@@ -1137,9 +1249,10 @@ function setupAdmin(){
       const model = readSellModels().find(entry => entry.id === ref);
       if(!model) return;
       productForm.elements.name.value = model.name;
-      setBrandSelectValue(brandFromSpec(model.spec));
-      productForm.elements.price.value = model.price;
-      productForm.elements.details.value = model.spec || '';
+      setBrandSelectValue(model.brand || brandFromSpec(model.spec));
+      productForm.elements.grade.value = model.grade || '';
+      productForm.elements.warranty.value = model.warranty || '';
+      fillStorageVariants(model);
       productForm.elements.frontPhoto.value = '';
       productForm.elements.backPhoto.value = '';
       productForm.elements.editIndex.value = `sell:${model.id}`;
@@ -1158,12 +1271,26 @@ function setupAdmin(){
     productForm.scrollIntoView({behavior:'smooth', block:'center'});
   });
   document.getElementById('viewBuyListBtn').addEventListener('click', () => {
+    adminCatalogViews.buy = null;
     renderAdminBuyModels();
     document.getElementById('adminBuyModels').scrollIntoView({behavior:'smooth', block:'start'});
   });
   document.getElementById('viewSellListBtn').addEventListener('click', () => {
+    adminCatalogViews.sell = null;
     renderAdminSellModels();
     document.getElementById('adminSellModels').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  document.getElementById('adminBuyModels').addEventListener('click', event => {
+    const brand = event.target.closest('[data-catalog-brand]');
+    const back = event.target.closest('[data-catalog-back="buy"]');
+    if(brand){ adminCatalogViews.buy = brand.dataset.catalogBrand; renderAdminBuyModels(); }
+    if(back){ adminCatalogViews.buy = null; renderAdminBuyModels(); }
+  });
+  document.getElementById('adminSellModels').addEventListener('click', event => {
+    const brand = event.target.closest('[data-catalog-brand]');
+    const back = event.target.closest('[data-catalog-back="sell"]');
+    if(brand){ adminCatalogViews.sell = brand.dataset.catalogBrand; renderAdminSellModels(); }
+    if(back){ adminCatalogViews.sell = null; renderAdminSellModels(); }
   });
   document.getElementById('refreshSubmissions').addEventListener('click', renderAdminSubmissions);
   

@@ -111,10 +111,24 @@ async function loadPartials(){
   highlightActiveNav();
   buildTicker();
   setupHamburger();
+  setupHistoryNavigation();
   ensureLoginUI();
   ensureChatbotWidget();
   setupLoginModal();
   if(window.setupSwapioAuth) window.setupSwapioAuth();
+}
+
+function setupHistoryNavigation(){
+  const back = document.querySelector('[data-nav-history="back"]');
+  const forward = document.querySelector('[data-nav-history="forward"]');
+  if(!back) return;
+  back.hidden = false;
+  if(forward) forward.hidden = false;
+  back.addEventListener('click', () => {
+    if(window.history.length > 1) window.history.back();
+    else window.location.href = '/index.html';
+  });
+  if(forward) forward.addEventListener('click', () => window.history.forward());
 }
 
 // ---------- 2. Highlight current page in nav ----------

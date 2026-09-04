@@ -17,11 +17,11 @@
   <section class="section wrap">
     <div class="section-head">
       <div class="eyebrow">Buy refurbished</div>
-      <h2>Certified phones, honestly graded</h2>
+      <h2 id="buyPageTitle">Certified phones, honestly graded</h2>
       <p>Every listing is graded Superb, Good, or Fair, tested on 45 checkpoints, and backed by a 30-day warranty.</p>
     </div>
 
-    <div class="filter-row" id="buyFilters">
+    <div class="filter-row" id="buyFilters" hidden>
       <button class="filter-chip active" data-filter="all">All</button>
       <button class="filter-chip" data-filter="under-10k">Under ₹10,000</button>
       <button class="filter-chip" data-filter="10k-20k">₹10,000–₹20,000</button>
@@ -30,7 +30,15 @@
       <button class="filter-chip" data-filter="android">Android</button>
     </div>
 
+    <div class="brand-logo-grid buy-brand-picker" data-brand-picker="compact" aria-label="Phone brands"></div>
+
+    <section class="flash-sale-section" aria-labelledby="flashSaleTitle">
+      <div class="flash-sale-heading"><h3 id="flashSaleTitle">Flash Sale</h3><span id="flashSaleLabel">Featured phones</span></div>
+      <div class="flash-sale-grid" id="flashSaleGrid"></div>
+    </section>
+
     <div class="grid-4" id="buyGrid"></div>
+    <section class="benefits-band" data-benefits></section>
   </section>
 </main>
 
@@ -42,6 +50,8 @@
 <script src="js/firebase-auth.js"></script>
 <script src="js/firebase-data.js"></script>
 <script src="js/main.js"></script>
+<script src="js/brand-experience.js"></script>
+<script src="js/buy-master-catalog.js"></script>
 <script>
 // ---------- phone icon svg (shared) ----------
 const phoneSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10.5 18.5h3" stroke-linecap="round"/></svg>`;
@@ -58,6 +68,12 @@ const buyModels = [
   {id:'galaxy-a54',name:'Galaxy A54', spec:'128GB · Samsung', now:'₹15,999', was:'₹24,000', grade:'Good', warranty:'30-day'},
   {id:'iphone-13',name:'iPhone 13', spec:'128GB · Apple', now:'₹41,999', was:'₹62,000', grade:'Superb', warranty:'30-day', image:'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?auto=format&fit=crop&w=500&q=85'},
 ];
+const buyMasterModels = Array.isArray(window.BUY_MASTER_MODELS) ? window.BUY_MASTER_MODELS : [];
+buyMasterModels.forEach(model => {
+  if (!buyModels.some(existing => existing.id === model.id)) {
+    buyModels.push({...model, now:`₹${Number(model.price).toLocaleString('en-IN')}`, was:model.oldPrice ? `₹${Number(model.oldPrice).toLocaleString('en-IN')}` : ''});
+  }
+});
 const buyOverrides = JSON.parse(localStorage.getItem('swapioBuyModels') || '{}');
 buyModels.forEach(model => {
   const override = buyOverrides[model.id] || {};
@@ -66,10 +82,17 @@ buyModels.forEach(model => {
   if(override.oldPrice) model.was = `₹${Number(override.oldPrice).toLocaleString('en-IN')}`;
 });
 const catalogProducts = window.swapioData?.readProducts ? window.swapioData.readProducts() : JSON.parse(localStorage.getItem('swapioAdminProducts') || '[]');
+function storageVariantSummary(product){
+  if(Array.isArray(product.storageVariants) && product.storageVariants.length){
+    return product.storageVariants.map(item => `${item.storage}: ₹${Number(item.price || 0).toLocaleString('en-IN')}`).join(' · ');
+  }
+  return product.details || `${product.brand} · Admin listing`;
+}
 const adminBuyModels = catalogProducts.filter(product => product.visible !== false)
   .map(product => ({
     name: product.name,
-    spec: product.details || `${product.brand} · Admin listing`,
+    brand: product.brand || '',
+    spec: `${product.brand || ''}${product.brand && storageVariantSummary(product) ? ' · ' : ''}${storageVariantSummary(product)}`,
     now: `₹${Number(product.price).toLocaleString('en-IN')}`,
     was: '',
     grade: 'Superb',
@@ -79,9 +102,10 @@ const adminBuyModels = catalogProducts.filter(product => product.visible !== fal
 buyModels.push(...adminBuyModels);
 const gradeClass = {Superb:'pill-green', Good:'pill-gold', Fair:'pill-coral'};
 const buyGrid = document.getElementById('buyGrid');
+const flashSaleGrid = document.getElementById('flashSaleGrid');
 
-function renderBuyModels(models){
-  buyGrid.innerHTML = models.length ? models.map(m=>`
+function renderBuyModels(models, target = buyGrid){
+  target.innerHTML = models.length ? models.map(m=>`
   <div class="product-card">
     <div class="${m.image ? 'phone-image-stack' : 'phone-icon'}">${m.backImage ? `<img class="phone-back" src="${m.backImage}" alt="${m.name} back" loading="lazy">` : ''}${m.image ? `<img class="phone-front" src="${m.image}" alt="${m.name} front" loading="lazy" onerror="this.parentElement.innerHTML=window.swapioPhoneSVG">` : phoneSVG}</div>
     <h4>${m.name}</h4>
@@ -96,7 +120,24 @@ function renderBuyModels(models){
   </div>`).join('') : '<p style="color:var(--slate);grid-column:1/-1;">No phones match this filter yet.</p>';
 }
 
-renderBuyModels(buyModels);
+const brandFilter = new URLSearchParams(window.location.search).get('brand');
+const showAllBrands = new URLSearchParams(window.location.search).get('brands') === 'all';
+const showAllPhones = new URLSearchParams(window.location.search).get('all') === '1';
+const visibleBuyModels = brandFilter
+  ? buyModels.filter(model => `${model.brand || ''} ${model.name} ${model.spec}`.toLowerCase().includes(brandFilter.toLowerCase()))
+  : buyModels;
+const buyScopeSelected = Boolean(brandFilter || showAllPhones);
+if (brandFilter) {
+  const brandPicker = document.querySelector('.buy-brand-picker');
+  const pageTitle = document.getElementById('buyPageTitle');
+  if (brandPicker) brandPicker.hidden = true;
+  if (pageTitle) pageTitle.textContent = `${brandFilter.charAt(0).toUpperCase()}${brandFilter.slice(1)} refurbished phones`;
+  document.querySelectorAll('#buyFilters [data-filter="iphone"], #buyFilters [data-filter="android"]').forEach(button => { button.hidden = true; });
+}
+document.getElementById('buyFilters').hidden = !buyScopeSelected;
+renderBuyModels((buyScopeSelected ? visibleBuyModels : buyModels).slice(0, 5), flashSaleGrid);
+if (buyScopeSelected) renderBuyModels(visibleBuyModels);
+else buyGrid.innerHTML = '';
 
 document.body.insertAdjacentHTML('beforeend', `<div class="modal-overlay" id="checkoutModal"><div class="modal-box checkout-box"><div class="modal-close" id="checkoutClose"><span aria-hidden="true">×</span></div><div id="checkoutEntry"><h3>Pay and complete your order</h3><p class="sub" id="checkoutProduct"></p><div class="upi-payment"><p>Scan this QR with any UPI app</p><img id="upiQr" alt="SmartSwap.Store UPI payment QR code"><strong id="upiIdLabel"></strong><a id="upiLink" class="btn btn-ghost" href="#">Pay in UPI app</a><small>After payment, enter the UTR / transaction ID below.</small></div><form id="checkoutForm" class="form-fields"><input name="name" placeholder="Your name" required><input name="phone" type="tel" placeholder="Phone number" required><textarea name="address" rows="3" placeholder="Delivery address" required></textarea><input name="utr" placeholder="UPI UTR / transaction ID" required><button class="btn btn-coral" type="submit">Submit paid order</button><div class="form-msg"></div></form></div><div id="checkoutSubmitted" class="checkout-submitted" hidden><h3>Payment submitted</h3><p id="checkoutSubmittedMessage"></p><strong id="checkoutTimer"></strong><small>We are checking your payment and will contact you shortly.</small></div></div></div>`);
 const checkoutModal = document.getElementById('checkoutModal');
@@ -108,7 +149,7 @@ const checkoutSubmittedMessage = document.getElementById('checkoutSubmittedMessa
 const checkoutTimer = document.getElementById('checkoutTimer');
 let selectedProduct = null;
 let checkoutTimerId = null;
-buyGrid.addEventListener('click', event => {
+document.querySelectorAll('#buyGrid, #flashSaleGrid').forEach(grid => grid.addEventListener('click', event => {
   const button = event.target.closest('[data-buy-model]');
   if(!button) return;
   selectedProduct = {name:button.dataset.buyModel, price:button.dataset.buyPrice};
@@ -121,7 +162,7 @@ buyGrid.addEventListener('click', event => {
   document.getElementById('upiIdLabel').textContent = upiId;
   document.getElementById('upiLink').href = upiUri;
   checkoutModal.classList.add('open');
-});
+}));
 document.getElementById('checkoutClose').addEventListener('click', () => checkoutModal.classList.remove('open'));
 checkoutModal.addEventListener('click', event => { if(event.target === checkoutModal) checkoutModal.classList.remove('open'); });
 checkoutForm.addEventListener('submit', async event => {
@@ -155,7 +196,8 @@ document.getElementById('buyFilters').addEventListener('click', (event) => {
   filterButton.classList.add('active');
 
   const filter = filterButton.dataset.filter;
-  const filteredModels = buyModels.filter(model => {
+  const scopedModels = brandFilter ? visibleBuyModels : buyModels;
+  const filteredModels = scopedModels.filter(model => {
     const price = Number(model.now.replace(/[^0-9]/g, ''));
     const isIphone = model.name.toLowerCase().includes('iphone') || model.spec.includes('Apple');
 
@@ -167,7 +209,10 @@ document.getElementById('buyFilters').addEventListener('click', (event) => {
     return true;
   });
 
+  renderBuyModels(filteredModels.slice(0, 5), flashSaleGrid);
   renderBuyModels(filteredModels);
+  const flashSaleLabel = document.getElementById('flashSaleLabel');
+  if (flashSaleLabel) flashSaleLabel.textContent = filter === 'all' ? 'Featured phones' : 'Filtered phones';
 });
 </script>
 </body>
