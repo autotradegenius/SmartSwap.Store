@@ -159,11 +159,93 @@ const DEFAULT_MODELS = [
   { id: 'vivo-y73', name: 'Vivo Y73', brand: 'Vivo', price: '11200', condition: 'Good', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=500&q=80', spec: '128 GB' },
   { id: 'vivo-x60', name: 'Vivo X60', brand: 'Vivo', price: '17600', condition: 'Superb', image: 'https://images.unsplash.com/photo-1601784551446-20c9e07d3f8b?auto=format&fit=crop&w=500&q=80', spec: '128 GB' },
   // Nokia - 1 model
-  { id: 'nokia-g50', name: 'Nokia G50', brand: 'Nokia', price: '13999', condition: 'Superb', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=500&q=80', spec: '128 GB' }
+  { id: 'iphone-6s-plus', name: 'Apple iPhone 6S Plus', brand: 'Apple', price: '2500', condition: 'Good', spec: '32 GB' },
+  { id: 'iphone-7-plus', name: 'Apple iPhone 7 Plus', brand: 'Apple', price: '3400', condition: 'Good', spec: '32 GB' },
+  { id: 'iphone-8-plus', name: 'Apple iPhone 8 Plus', brand: 'Apple', price: '5200', condition: 'Good', spec: '64 GB' },
+  { id: 'iphone-x', name: 'Apple iPhone X', brand: 'Apple', price: '14500', condition: 'Good', spec: '64 GB' },
+  { id: 'iphone-16', name: 'Apple iPhone 16', brand: 'Apple', price: '47520', condition: 'Superb', spec: '128 GB' },
+  { id: 'galaxy-a14-5g', name: 'Samsung Galaxy A14 5G', brand: 'Samsung', price: '9000', condition: 'Good', spec: '128 GB' },
+  { id: 'galaxy-a03', name: 'Samsung Galaxy A03', brand: 'Samsung', price: '6200', condition: 'Good', spec: '32 GB' },
+  { id: 'galaxy-a03-core', name: 'Samsung Galaxy A03 Core', brand: 'Samsung', price: '5400', condition: 'Good', spec: '32 GB' },
+  { id: 'galaxy-a03s', name: 'Samsung Galaxy A03s', brand: 'Samsung', price: '5800', condition: 'Good', spec: '32 GB' },
+  { id: 'galaxy-s22-ultra-5g', name: 'Samsung Galaxy S22 Ultra 5G', brand: 'Samsung', price: '24900', condition: 'Superb', spec: '256 GB' },
+  { id: 'galaxy-s23-ultra-5g', name: 'Samsung Galaxy S23 Ultra 5G', brand: 'Samsung', price: '39800', condition: 'Superb', spec: '256 GB' },
+  { id: 'oneplus-6', name: 'OnePlus 6', brand: 'OnePlus', price: '9800', condition: 'Good', spec: '128 GB' },
+  { id: 'oneplus-5t', name: 'OnePlus 5T', brand: 'OnePlus', price: '7600', condition: 'Good', spec: '64 GB' },
+  { id: 'oneplus-5', name: 'OnePlus 5', brand: 'OnePlus', price: '6800', condition: 'Good', spec: '64 GB' },
+  { id: 'oneplus-3t', name: 'OnePlus 3T', brand: 'OnePlus', price: '5200', condition: 'Good', spec: '64 GB' },
+  { id: 'oneplus-3', name: 'OnePlus 3', brand: 'OnePlus', price: '4600', condition: 'Good', spec: '64 GB' },
+  { id: 'oneplus-6t-mclaren', name: 'OnePlus 6T McLaren', brand: 'OnePlus', price: '10500', condition: 'Good', spec: '256 GB' },
+  { id: 'vivo-v9-pro', name: 'Vivo V9 Pro', brand: 'Vivo', price: '6500', condition: 'Good', spec: '64 GB' },
+  { id: 'vivo-v11-pro', name: 'Vivo V11 Pro', brand: 'Vivo', price: '7200', condition: 'Good', spec: '64 GB' },
+  { id: 'vivo-v11', name: 'Vivo V11', brand: 'Vivo', price: '6500', condition: 'Good', spec: '64 GB' },
+  { id: 'vivo-y83-pro', name: 'Vivo Y83 Pro', brand: 'Vivo', price: '5600', condition: 'Good', spec: '64 GB' },
+  { id: 'vivo-nex', name: 'Vivo NEX', brand: 'Vivo', price: '9000', condition: 'Good', spec: '128 GB' },
+  { id: 'vivo-y71i', name: 'Vivo Y71i', brand: 'Vivo', price: '4300', condition: 'Good', spec: '16 GB' },
+  { id: 'motorola-one-power', name: 'Motorola One Power', brand: 'Motorola', price: '6900', condition: 'Good', spec: '64 GB' },
+  { id: 'moto-g6-plus', name: 'Motorola Moto G6 Plus', brand: 'Motorola', price: '5200', condition: 'Good', spec: '64 GB' },
+  { id: 'moto-z2-force', name: 'Motorola Moto Z2 Force', brand: 'Motorola', price: '6200', condition: 'Good', spec: '64 GB' },
+  { id: 'moto-g6', name: 'Motorola Moto G6', brand: 'Motorola', price: '4800', condition: 'Good', spec: '64 GB' },
+  { id: 'moto-g7-power', name: 'Motorola Moto G7 Power', brand: 'Motorola', price: '5800', condition: 'Good', spec: '64 GB' },
+  { id: 'moto-g7', name: 'Motorola Moto G7', brand: 'Motorola', price: '5600', condition: 'Good', spec: '64 GB' },
+  { id: 'oppo-a7', name: 'OPPO A7', brand: 'OPPO', price: '5200', condition: 'Good', spec: '64 GB' },
+  { id: 'oppo-f9-pro', name: 'OPPO F9 Pro', brand: 'OPPO', price: '6500', condition: 'Good', spec: '64 GB' },
+  { id: 'oppo-f9', name: 'OPPO F9', brand: 'OPPO', price: '6000', condition: 'Good', spec: '64 GB' },
+  { id: 'oppo-a3s', name: 'OPPO A3s', brand: 'OPPO', price: '4500', condition: 'Good', spec: '32 GB' },
+  { id: 'oppo-find-x', name: 'OPPO Find X', brand: 'OPPO', price: '8500', condition: 'Good', spec: '256 GB' },
+  { id: 'oppo-a5', name: 'OPPO A5', brand: 'OPPO', price: '4800', condition: 'Good', spec: '32 GB' },
+  { id: 'realme-1', name: 'Realme 1', brand: 'Realme', price: '4200', condition: 'Good', spec: '32 GB' },
+  { id: 'realme-2', name: 'Realme 2', brand: 'Realme', price: '4600', condition: 'Good', spec: '32 GB' },
+  { id: 'realme-2-pro', name: 'Realme 2 Pro', brand: 'Realme', price: '5200', condition: 'Good', spec: '64 GB' },
+  { id: 'realme-3', name: 'Realme 3', brand: 'Realme', price: '5000', condition: 'Good', spec: '64 GB' },
+  { id: 'realme-c1', name: 'Realme C1', brand: 'Realme', price: '3900', condition: 'Good', spec: '32 GB' },
+  { id: 'realme-u1', name: 'Realme U1', brand: 'Realme', price: '4800', condition: 'Good', spec: '64 GB' },
+  { id: 'poco-m2-pro', name: 'POCO M2 Pro', brand: 'Poco', price: '7200', condition: 'Good', spec: '64 GB' },
+  { id: 'poco-c3', name: 'POCO C3', brand: 'Poco', price: '4800', condition: 'Good', spec: '32 GB' },
+  { id: 'poco-m4-5g', name: 'POCO M4 5G', brand: 'Poco', price: '8200', condition: 'Good', spec: '64 GB' },
+  { id: 'poco-c31', name: 'POCO C31', brand: 'Poco', price: '4600', condition: 'Good', spec: '32 GB' },
+  { id: 'nokia-6-1-plus', name: 'Nokia 6.1 Plus', brand: 'Nokia', price: '5600', condition: 'Good', spec: '64 GB' },
+  { id: 'nokia-5-1-plus', name: 'Nokia 5.1 Plus', brand: 'Nokia', price: '4800', condition: 'Good', spec: '32 GB' },
+  { id: 'nokia-8-sirocco', name: 'Nokia 8 Sirocco', brand: 'Nokia', price: '7200', condition: 'Good', spec: '128 GB' },
+  { id: 'nokia-7-plus', name: 'Nokia 7 Plus', brand: 'Nokia', price: '6200', condition: 'Good', spec: '64 GB' },
+  { id: 'nokia-8-1', name: 'Nokia 8.1', brand: 'Nokia', price: '6500', condition: 'Good', spec: '64 GB' },
+  { id: 'realme-5', name: 'Realme 5', brand: 'Realme', price: '5200', condition: 'Good', spec: '64 GB' },
+  { id: 'realme-6', name: 'Realme 6', brand: 'Realme', price: '6500', condition: 'Good', spec: '64 GB' },
+  { id: 'realme-7', name: 'Realme 7', brand: 'Realme', price: '7200', condition: 'Good', spec: '128 GB' },
+  { id: 'realme-8', name: 'Realme 8', brand: 'Realme', price: '7800', condition: 'Good', spec: '128 GB' },
+  { id: 'realme-9', name: 'Realme 9', brand: 'Realme', price: '9200', condition: 'Good', spec: '128 GB' },
+  { id: 'realme-10', name: 'Realme 10', brand: 'Realme', price: '10500', condition: 'Good', spec: '128 GB' },
+  { id: 'realme-11', name: 'Realme 11', brand: 'Realme', price: '12500', condition: 'Good', spec: '128 GB' },
+  { id: 'realme-narzo-50', name: 'Realme Narzo 50', brand: 'Realme', price: '7600', condition: 'Good', spec: '64 GB' },
+  { id: 'realme-gt-neo-2', name: 'Realme GT Neo 2', brand: 'Realme', price: '14500', condition: 'Good', spec: '128 GB' },
+  { id: 'lenovo-k8-note', name: 'Lenovo K8 Note', brand: 'Lenovo', price: '4200', condition: 'Good', spec: '64 GB' },
+  { id: 'lenovo-k10-note', name: 'Lenovo K10 Note', brand: 'Lenovo', price: '4800', condition: 'Good', spec: '64 GB' },
+  { id: 'honor-8x', name: 'Honor 8X', brand: 'Honor', price: '5800', condition: 'Good', spec: '64 GB' },
+  { id: 'honor-10', name: 'Honor 10', brand: 'Honor', price: '6500', condition: 'Good', spec: '128 GB' },
+  { id: 'asus-zenfone-max-pro-m1', name: 'Asus Zenfone Max Pro M1', brand: 'Asus', price: '4500', condition: 'Good', spec: '64 GB' },
+  { id: 'asus-zenfone-5z', name: 'Asus Zenfone 5Z', brand: 'Asus', price: '5800', condition: 'Good', spec: '128 GB' },
+  { id: 'google-pixel-4a', name: 'Google Pixel 4a', brand: 'Google', price: '10500', condition: 'Good', spec: '128 GB' },
+  { id: 'google-pixel-6a', name: 'Google Pixel 6a', brand: 'Google', price: '18500', condition: 'Good', spec: '128 GB' },
+  { id: 'lg-g8x-thinq', name: 'LG G8X ThinQ', brand: 'LG', price: '6200', condition: 'Good', spec: '128 GB' },
+  { id: 'lg-v30-plus', name: 'LG V30 Plus', brand: 'LG', price: '4800', condition: 'Good', spec: '128 GB' },
+  { id: 'infinix-hot-10', name: 'Infinix Hot 10', brand: 'Infinix', price: '5000', condition: 'Good', spec: '64 GB' },
+  { id: 'infinix-note-12', name: 'Infinix Note 12', brand: 'Infinix', price: '7200', condition: 'Good', spec: '64 GB' },
+  { id: 'tecno-spark-8', name: 'Tecno Spark 8', brand: 'Tecno', price: '4500', condition: 'Good', spec: '64 GB' },
+  { id: 'tecno-camon-19', name: 'Tecno Camon 19', brand: 'Tecno', price: '6500', condition: 'Good', spec: '128 GB' },
+  { id: 'iqoo-z3', name: 'iQOO Z3', brand: 'iQOO', price: '10500', condition: 'Good', spec: '128 GB' },
+  { id: 'iqoo-7', name: 'iQOO 7', brand: 'iQOO', price: '14500', condition: 'Good', spec: '128 GB' },
+  { id: 'nothing-phone-1', name: 'Nothing Phone (1)', brand: 'Nothing', price: '16500', condition: 'Good', spec: '128 GB' },
+  { id: 'nothing-phone-2', name: 'Nothing Phone (2)', brand: 'Nothing', price: '23500', condition: 'Good', spec: '256 GB' }
 ];
+
+window.DEFAULT_MODELS = DEFAULT_MODELS;
 
 function normalizeBrandName(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function getCatalogModelKey(model) {
+  return `${normalizeBrandName(model.brand)}:${normalizeBrandName(model.name)}`;
 }
 
 function getBrandFallbackImage(brandName) {
@@ -185,30 +267,31 @@ function getBrandFallbackImage(brandName) {
 
 // Read from the same catalog that admin.js writes to
 function readPhoneCatalog(){
-  let catalog = [];
+  let storedCatalog = [];
   try {
-    catalog = JSON.parse(localStorage.getItem('swapioPhoneCatalog') || '[]');
+    storedCatalog = JSON.parse(localStorage.getItem('swapioPhoneCatalog') || '[]');
   } catch (error) {
-    catalog = [];
+    storedCatalog = [];
   }
 
-  const isIncomplete = !catalog.length || catalog.length < 40 || !catalog.some(phone => (phone.brand || '').toLowerCase() === 'xiaomi') || !catalog.some(phone => (phone.brand || '').toLowerCase() === 'poco');
+  let sellCatalog = [];
+  try {
+    sellCatalog = JSON.parse(localStorage.getItem('swapioSellCatalog') || '[]');
+  } catch (error) {
+    sellCatalog = [];
+  }
 
-  if (isIncomplete) {
-    const merged = new Map();
-    catalog.forEach(phone => {
-      if (phone && (phone.id || phone.name)) {
-        merged.set(String(phone.id || phone.name).toLowerCase(), phone);
-      }
-    });
-    DEFAULT_MODELS.forEach(model => {
-      merged.set(String(model.id || model.name).toLowerCase(), model);
-    });
+  const merged = new Map();
+  [...storedCatalog, ...sellCatalog, ...DEFAULT_MODELS].forEach(phone => {
+    if (!phone || !phone.name || !phone.brand) return;
+    const key = getCatalogModelKey(phone);
+    if (!merged.has(key)) merged.set(key, phone);
+  });
 
-    catalog = Array.from(merged.values());
+  const catalog = Array.from(merged.values()).filter(phone => !phone.hidden);
+  if (JSON.stringify(storedCatalog) !== JSON.stringify(catalog)) {
     localStorage.setItem('swapioPhoneCatalog', JSON.stringify(catalog));
   }
-
   return catalog;
 }
 

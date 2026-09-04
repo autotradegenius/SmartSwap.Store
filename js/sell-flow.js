@@ -147,7 +147,15 @@
     return active;
   }
 
-    function getSellModels() {
+  function normalizeCatalogValue(value) {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  }
+
+  function getCatalogModelKey(model) {
+    return `${normalizeCatalogValue(model.brand)}:${normalizeCatalogValue(model.name)}`;
+  }
+
+  function getSellModels() {
     let catalog = [];
     try {
       catalog = JSON.parse(localStorage.getItem('swapioSellCatalog') || '[]');
@@ -155,12 +163,26 @@
       catalog = [];
     }
 
-    if (!catalog.length) {
-      catalog = BASE_MODELS.map(model => ({ ...model, hidden: false }));
-      localStorage.setItem('swapioSellCatalog', JSON.stringify(catalog));
+    let phoneCatalog = [];
+    try {
+      phoneCatalog = JSON.parse(localStorage.getItem('swapioPhoneCatalog') || '[]');
+    } catch (error) {
+      phoneCatalog = [];
     }
 
-    return catalog.filter(model => model && model.name && !model.hidden);
+    const merged = new Map();
+    [...catalog, ...phoneCatalog, ...BASE_MODELS, ...(window.DEFAULT_MODELS || [])].forEach(model => {
+      if (!model || !model.name || !model.brand) return;
+      const key = getCatalogModelKey(model);
+      if (!merged.has(key)) merged.set(key, { ...model, hidden: Boolean(model.hidden) });
+    });
+
+    const normalizedCatalog = Array.from(merged.values());
+    if (JSON.stringify(catalog) !== JSON.stringify(normalizedCatalog)) {
+      localStorage.setItem('swapioSellCatalog', JSON.stringify(normalizedCatalog));
+    }
+
+    return normalizedCatalog.filter(model => !model.hidden);
   }
 
   function getModelFromQuery() {
@@ -205,7 +227,7 @@
     if (!grid) return;
 
     const brand = getBrandFromQuery();
-    const models = getSellModels().filter(model => brand === 'all' || model.brand === brand);
+    const models = getSellModels().filter(model => brand === 'all' || normalizeCatalogValue(model.brand) === normalizeCatalogValue(brand));
 
     if (!models.length) {
       grid.innerHTML = '<p class="sell-step-subtitle">No models available for this brand.</p>';
@@ -258,9 +280,13 @@
   }
 
   function getModelStorageOptions(model) {
-    const customOptions = Array.isArray(model.storageOptions)
-      ? model.storageOptions
+    const selectedVariants = Array.isArray(model.storageVariants)
+      ? model.storageVariants.map(item => String(item.storage || '').trim()).filter(Boolean)
       : [];
+
+    if (selectedVariants.length) return [...new Set(selectedVariants)];
+
+    const customOptions = Array.isArray(model.storageOptions) ? model.storageOptions : [];
 
     if (customOptions.length) {
       return [...new Set(customOptions.map(option => String(option).trim()).filter(Boolean))];
@@ -271,6 +297,15 @@
     const fallback = derived.length ? derived : ['64 GB'];
 
     return [...new Set(fallback.filter(value => STORAGE_MEMORY_ORDER.includes(value) || /\d+\s*GB/i.test(value)))];
+  }
+
+  function getModelStoragePrice(model, storage) {
+    const storedVariant = Array.isArray(model.storageVariants)
+      ? model.storageVariants.find(item => String(item.storage || '').trim() === storage)
+      : null;
+    return storedVariant && storedVariant.price !== '' && storedVariant.price != null
+      ? Number(storedVariant.price)
+      : getModelMemoryPrice(model, storage);
   }
 
   function buildVariantPage() {
@@ -289,7 +324,7 @@
     const defaultStorage = storageOptions.includes(storageParam) ? storageParam : storageOptions[0];
 
     function renderPrice(storage) {
-      const exact = getModelMemoryPrice(model, storage);
+      const exact = getModelStoragePrice(model, storage);
       priceEl.textContent = `₹${new Intl.NumberFormat('en-IN').format(exact)}`;
       metaEl.textContent = `${new Intl.NumberFormat('en-IN').format(Math.max(1200, exact + 1800))}+ already sold on SmartSwap`;
       const nextUrl = `condition.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}&memory=${encodeURIComponent(storage)}`;
@@ -301,7 +336,7 @@
     imageEl.src = model.image || imageEl.src;
     imageEl.alt = model.name;
     optionWrap.innerHTML = storageOptions.map(storage => `
-      <button class="sell-option-card ${storage === defaultStorage ? 'selected' : ''}" type="button" data-storage="${storage}">
+      <button class="sell-option-card ${storage === defaultStorage ? 'selected' : ''}" type="button" data-storage="${storage}" aria-label="Select ${storage} variant">
         <div class="option-text">${storage}</div>
       </button>
     `).join('');
