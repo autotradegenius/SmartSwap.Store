@@ -49,7 +49,7 @@
         ? (selectedBrand ? `buy.html?brand=${selectedBrand}` : 'buy.html')
         : (selectedBrand ? `brand.html?brand=${selectedBrand}` : 'brand.html');
       const closeCard = expanded ? `<a class="brand-logo-card close-more-brands" href="${closeHref}"><span class="brand-logo-mark"><strong>×</strong></span><span>Close Brands</span></a>` : '';
-      const sellDamageCard = document.body.dataset.page === 'sell' && window.location.pathname.includes('/sell-flow/brand.html')
+      const sellDamageCard = document.body.dataset.page === 'sell' && window.location.pathname.includes('/sell-flow/brand')
         ? `<a class="brand-logo-card recycle-phone-brand" href="damaged.html"><span class="brand-logo-mark"><strong aria-hidden="true">♻</strong></span><span>Recycle old phones<br>For cash</span></a>`
         : '';
       container.innerHTML = allPhones + visibleBrands.map(([slug, label]) => `
