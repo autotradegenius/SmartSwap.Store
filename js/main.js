@@ -147,7 +147,31 @@ function setupHamburger(){
   const btn = document.getElementById('hamburgerBtn');
   const nav = document.querySelector('.nav-links');
   if(!btn || !nav) return;
-  btn.addEventListener('click', () => nav.classList.toggle('mobile-open'));
+  btn.setAttribute('role', 'button');
+  btn.setAttribute('tabindex', '0');
+  btn.setAttribute('aria-expanded', 'false');
+  const closeMenu = () => {
+    nav.classList.remove('mobile-open');
+    btn.setAttribute('aria-expanded', 'false');
+  };
+  const toggleMenu = () => {
+    const isOpen = nav.classList.toggle('mobile-open');
+    btn.setAttribute('aria-expanded', String(isOpen));
+  };
+  btn.addEventListener('click', toggleMenu);
+  btn.addEventListener('keydown', event => {
+    if(event.key === 'Enter' || event.key === ' '){
+      event.preventDefault();
+      toggleMenu();
+    }
+  });
+  document.addEventListener('click', event => {
+    if(!nav.contains(event.target) && !btn.contains(event.target)) closeMenu();
+  });
+  document.addEventListener('keydown', event => {
+    if(event.key === 'Escape') closeMenu();
+  });
+  nav.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
 }
 
 // ---------- 4. Ticker (scrolling recent prices) ----------

@@ -6,10 +6,10 @@
     ['google', 'Google'], ['poco', 'POCO'], ['lg', 'LG'], ['infinix', 'Infinix'],
     ['tecno', 'Tecno'], ['iqoo', 'iQOO'], ['nothing', 'Nothing']
   ];
-  const textWordmarkBrands = new Set(['realme', 'poco', 'infinix', 'tecno', 'iqoo', 'nothing']);
+  const textWordmarkBrands = new Set(['realme', 'poco', 'infinix', 'tecno', 'iqoo', 'nothing', 'nokia']);
 
   function logoUrl(slug) {
-    return `https://cdn.simpleicons.org/${slug}`;
+    return slug === 'nokia' ? 'https://cdn.simpleicons.org/nokia/1246a0' : `https://cdn.simpleicons.org/${slug}`;
   }
 
   function fallbackLogoUrl(slug) {
@@ -21,6 +21,7 @@
     const existingBrandPages = ['apple', 'samsung', 'xiaomi', 'vivo', 'oneplus', 'poco', 'motorola', 'oppo', 'nokia'];
     const buyPage = path.endsWith('/buy.html') || path.endsWith('/buy');
     if (document.body.dataset.page === 'index') return `buy.html?brand=${slug}`;
+    if (document.body.dataset.page === 'buy') return `buy.html?brand=${slug}`;
     if (path.endsWith('/more-brands.html')) {
       const mode = new URLSearchParams(window.location.search).get('mode');
       return mode === 'buy' ? `buy.html?brand=${slug}` : `sell-flow/brand.html?brand=${slug}`;
@@ -49,7 +50,7 @@
         : (selectedBrand ? `brand.html?brand=${selectedBrand}` : 'brand.html');
       const closeCard = expanded ? `<a class="brand-logo-card close-more-brands" href="${closeHref}"><span class="brand-logo-mark"><strong>×</strong></span><span>Close Brands</span></a>` : '';
       const sellDamageCard = document.body.dataset.page === 'sell' && window.location.pathname.includes('/sell-flow/brand.html')
-        ? `<a class="brand-logo-card damaged-phone-brand" href="damaged.html"><span class="brand-logo-mark"><strong aria-hidden="true">♻</strong></span><span>Damaged Phone</span></a>`
+        ? `<a class="brand-logo-card recycle-phone-brand" href="damaged.html"><span class="brand-logo-mark"><strong aria-hidden="true">♻</strong></span><span>Recycle old phones<br>For cash</span></a>`
         : '';
       container.innerHTML = allPhones + visibleBrands.map(([slug, label]) => `
         <a class="brand-logo-card${selectedBrand && selectedBrand.toLowerCase() === slug ? ' brand-selected' : ''}" href="${brandHref(slug)}" data-brand="${slug}">

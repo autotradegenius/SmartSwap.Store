@@ -230,6 +230,7 @@ header{
 .wordmark-tecno{color:#2c82bd;font-weight:800;letter-spacing:.03em;}
 .wordmark-iqoo{color:#f2ac00;font-weight:800;letter-spacing:.12em;}
 .wordmark-nothing{color:#555;font-weight:700;letter-spacing:.08em;}
+.wordmark-nokia{color:#1246a0;font-size:22px!important;font-weight:700;letter-spacing:.02em;}
 .benefits-band{margin-top:42px;padding:34px 0 12px;border-top:1px solid var(--line-light);}
 .benefits-heading{text-align:center;margin-bottom:24px;}
 .benefits-heading .eyebrow{justify-content:center;}
@@ -257,8 +258,11 @@ header{
 .buy-brand-picker[hidden],[data-brand-picker][hidden]{display:none;}
 .brand-logo-card.brand-selected{border-color:var(--coral);box-shadow:0 0 0 2px rgba(255,93,58,.16);}
 .brand-logo-card.close-more-brands{background:#fff7f3;color:var(--coral);}
-.brand-logo-card.damaged-phone-brand{background:#fff7f3;color:var(--coral);}
-.damaged-phone-brand .brand-logo-mark strong{font-size:24px;line-height:1;}
+.brand-logo-card.recycle-phone-brand{background:#effaf3;border-color:#b8dfc5;color:#197044;}
+.brand-logo-card.recycle-phone-brand:hover{border-color:#39a96b;box-shadow:0 12px 22px -18px rgba(25,112,68,.5);}
+.recycle-phone-brand .brand-logo-mark{width:54px;height:54px;border-radius:50%;background:#d5f1df;}
+.recycle-phone-brand .brand-logo-mark strong{font-size:28px;line-height:1;color:#218653;}
+.recycle-phone-brand>span:last-child{color:#197044;}
 .sell-option-card.selected{border-color:var(--coral);box-shadow:0 0 0 2px rgba(255,93,58,.16);}
 .damaged-continue[aria-disabled="true"]{opacity:.55;pointer-events:none;}
 .damaged-field-label{display:block;margin:18px 0 8px;font-weight:600;color:var(--ink);}
@@ -466,8 +470,12 @@ header{
 }
 
 @media (max-width: 720px){
-  .cashify-hero-inner{padding:24px 18px 18px;}
-  .cashify-hero-left h1{font-size:2.3rem;}
+  .cashify-hero-inner{padding:20px 18px 16px;}
+  .cashify-hero-left h1{font-size:2.1rem;line-height:1.12;letter-spacing:-.025em;margin-bottom:12px;}
+  .cashify-hero-left p{font-size:16px;line-height:1.5;margin-bottom:18px;}
+  .hero-tab-switch{gap:2px;padding:4px;}
+  .hero-tab-switch button{padding:9px 14px;font-size:14px;}
+  .hero-subtitle{font-size:12px;line-height:1.5;}
   .cashify-brand-grid{display:grid;grid-template-columns:repeat(2, minmax(120px, 1fr));}
   .cashify-brand-card{min-width:unset;}
   .benefits-grid{grid-template-columns:1fr;gap:4px;}
@@ -735,7 +743,15 @@ footer{background:var(--ink);color:#9aa0ac;padding:56px 0 28px;margin-top:40px;}
   .form-panel{grid-template-columns:1fr;padding:30px;}
 }
 @media (max-width:720px){
-  .nav-links{display:none;}
+  .wrap,.section.wrap,.sell-flow-wrap{padding-left:18px;padding-right:18px;}
+  .sell-main-panel,.sell-panel-left{width:100%;min-width:0;}
+  .brand-logo-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .brand-logo-card{min-width:0;}
+  .sell-option-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:10px;}
+  .nav-row{position:relative;}
+  .nav-links{display:none;position:absolute;top:calc(100% + 1px);left:0;right:0;z-index:10;flex-direction:column;gap:0;padding:8px;background:var(--paper);border:1px solid var(--line-light);box-shadow:0 10px 24px rgba(18,20,28,.12);}
+  .nav-links.mobile-open{display:flex;}
+  .nav-links a{display:block;padding:12px 16px;}
   .hamburger{display:flex;}
   .hero-copy h1{font-size:2.3rem;}
   .grid-3,.grid-4{grid-template-columns:1fr;}
