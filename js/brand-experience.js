@@ -19,13 +19,14 @@
   function brandHref(slug) {
     const path = window.location.pathname;
     const existingBrandPages = ['apple', 'samsung', 'xiaomi', 'vivo', 'oneplus', 'poco', 'motorola', 'oppo', 'nokia'];
+    const buyPage = path.endsWith('/buy.html') || path.endsWith('/buy');
     if (document.body.dataset.page === 'index') return `buy.html?brand=${slug}`;
     if (path.endsWith('/more-brands.html')) {
       const mode = new URLSearchParams(window.location.search).get('mode');
       return mode === 'buy' ? `buy.html?brand=${slug}` : `sell-flow/brand.html?brand=${slug}`;
     }
     if (path.includes('/sell-flow/')) return `brand.html?brand=${slug}`;
-    if (path.endsWith('/buy.html')) return `buy.html?brand=${slug}`;
+    if (buyPage) return `buy.html?brand=${slug}`;
     return existingBrandPages.includes(slug) ? `brand/${slug}.html` : `sell-flow/brand.html?brand=${slug}`;
   }
 
@@ -33,7 +34,8 @@
     document.querySelectorAll('[data-brand-picker]').forEach(container => {
       const compact = container.dataset.brandPicker === 'compact' && new URLSearchParams(window.location.search).get('brands') !== 'all';
       const visibleBrands = compact ? brands.slice(0, 4) : brands;
-      const buyPage = window.location.pathname.endsWith('/buy.html');
+      const path = window.location.pathname;
+      const buyPage = path.endsWith('/buy.html') || path.endsWith('/buy');
       const brandSelected = new URLSearchParams(window.location.search).has('brand');
       const expanded = new URLSearchParams(window.location.search).get('brands') === 'all';
       const selectedBrand = new URLSearchParams(window.location.search).get('brand');
