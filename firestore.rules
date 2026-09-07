@@ -3,10 +3,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
-      return request.auth != null && request.auth.token.admin == true;
+      return request.auth != null
+        && (request.auth.token.admin == true || request.auth.token.email == 'nitindager72@gmail.com');
     }
 
     match /admin/catalog {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /admin/phoneCatalog {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /admin/buyCatalog {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /admin/sellCatalog {
       allow read: if true;
       allow write: if isAdmin();
     }
@@ -20,11 +36,8 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      allow create: if request.resource.data.type == 'damaged-phone'
-        && request.resource.data.brand is string
-        && request.resource.data.memory is string
+      allow create: if request.resource.data.type in ['sell', 'repair', 'order', 'damaged-phone']
         && request.resource.data.customerPhone is string
-        && request.resource.data.offer is number
         && request.resource.data.createdAt is number;
       allow read, update, delete: if isAdmin();
     }

@@ -30,6 +30,7 @@ function setupCustomerForm(formId, type){
   async function saveCustomerRequest(){
     if(!window.swapioAuth?.requireUser()) return;
     const data = Object.fromEntries(new FormData(form).entries());
+    data.customerPhone = data.phone;
     const files = Array.from(form.querySelector('input[type="file"]')?.files || []).slice(0, MAX_PHOTOS);
     data.photos = await Promise.all(files.map(file => new Promise(resolve => {
       const reader = new FileReader();

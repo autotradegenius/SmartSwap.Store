@@ -4,6 +4,8 @@
     inventory: 'swapioInventory',
     returns: 'swapioReturns',
     phoneCatalog: 'swapioPhoneCatalog',
+    buyCatalog: 'swapioBuyCatalog',
+    sellCatalog: 'swapioSellCatalog',
     bills: 'swapioBills',
     billingCounter: 'swapioBillingCounter'
   };
@@ -13,6 +15,8 @@
     inventory: 'inventory',
     returns: 'returns',
     phoneCatalog: 'phoneCatalog',
+    buyCatalog: 'buyCatalog',
+    sellCatalog: 'sellCatalog',
     bills: 'bills',
     billingCounter: 'billingCounter'
   };
@@ -158,6 +162,50 @@
     return Array.isArray(data.phones) ? data.phones : [];
   }
 
+  function readBuyCatalog() {
+    return safeParse(STORAGE_KEYS.buyCatalog, []);
+  }
+
+  function saveBuyCatalog(items) {
+    setLocalStorage(STORAGE_KEYS.buyCatalog, items);
+    return syncBuyCatalogToCloud(items);
+  }
+
+  async function syncBuyCatalogToCloud(items) {
+    const db = getDb();
+    if (!db) return false;
+    await setDocument('buyCatalog', { models: items, updatedAt: Date.now() });
+    return true;
+  }
+
+  async function loadBuyCatalogFromCloud() {
+    const data = await getDocument('buyCatalog');
+    if (!data) return null;
+    return Array.isArray(data.models) ? data.models : [];
+  }
+
+  function readSellCatalog() {
+    return safeParse(STORAGE_KEYS.sellCatalog, []);
+  }
+
+  function saveSellCatalog(items) {
+    setLocalStorage(STORAGE_KEYS.sellCatalog, items);
+    return syncSellCatalogToCloud(items);
+  }
+
+  async function syncSellCatalogToCloud(items) {
+    const db = getDb();
+    if (!db) return false;
+    await setDocument('sellCatalog', { models: items, updatedAt: Date.now() });
+    return true;
+  }
+
+  async function loadSellCatalogFromCloud() {
+    const data = await getDocument('sellCatalog');
+    if (!data) return null;
+    return Array.isArray(data.models) ? data.models : [];
+  }
+
   function readReturns() {
     return safeParse(STORAGE_KEYS.returns, []);
   }
@@ -262,6 +310,14 @@
     if (cloudPhoneCatalog !== null) {
       setLocalStorage(STORAGE_KEYS.phoneCatalog, cloudPhoneCatalog);
     }
+    const cloudBuyCatalog = await loadBuyCatalogFromCloud();
+    if (cloudBuyCatalog !== null) {
+      setLocalStorage(STORAGE_KEYS.buyCatalog, cloudBuyCatalog);
+    }
+    const cloudSellCatalog = await loadSellCatalogFromCloud();
+    if (cloudSellCatalog !== null) {
+      setLocalStorage(STORAGE_KEYS.sellCatalog, cloudSellCatalog);
+    }
     const cloudBills = await loadBillsFromCloud();
     if (cloudBills !== null) {
       setLocalStorage(STORAGE_KEYS.bills, cloudBills);
@@ -286,6 +342,14 @@
     savePhoneCatalog,
     syncPhoneCatalogToCloud,
     loadPhoneCatalogFromCloud,
+    readBuyCatalog,
+    saveBuyCatalog,
+    syncBuyCatalogToCloud,
+    loadBuyCatalogFromCloud,
+    readSellCatalog,
+    saveSellCatalog,
+    syncSellCatalogToCloud,
+    loadSellCatalogFromCloud,
     readReturns,
     saveReturns,
     syncReturnsToCloud,

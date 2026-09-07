@@ -245,7 +245,11 @@ function normalizeBrandName(value) {
 }
 
 function getCatalogModelKey(model) {
-  return `${normalizeBrandName(model.brand)}:${normalizeBrandName(model.name)}`;
+  const brand = normalizeBrandName(model.brand);
+  let name = String(model.name || '').trim();
+  const brandPrefix = new RegExp(`^${String(model.brand || '').trim()}[\\s-]+`, 'i');
+  name = name.replace(brandPrefix, '');
+  return `${brand}:${normalizeBrandName(name)}`;
 }
 
 function getBrandFallbackImage(brandName) {
@@ -361,6 +365,21 @@ function initBrandCatalog(){
     const containerId = gridElement.id || 'model-grid';
     renderBrandCatalog(brand, containerId);
     renderSellBenefits(gridElement);
+    const refreshFromCloud = async () => {
+      try {
+        const [phoneCatalog, sellCatalog] = await Promise.all([
+          window.swapioData?.loadPhoneCatalogFromCloud?.(),
+          window.swapioData?.loadSellCatalogFromCloud?.()
+        ]);
+        if (Array.isArray(phoneCatalog)) localStorage.setItem('swapioPhoneCatalog', JSON.stringify(phoneCatalog));
+        if (Array.isArray(sellCatalog)) localStorage.setItem('swapioSellCatalog', JSON.stringify(sellCatalog));
+        renderBrandCatalog(brand, containerId);
+        window.dispatchEvent(new Event('swapioCatalogUpdated'));
+      } catch (error) {
+        console.warn('Public sell catalog cloud sync failed.', error);
+      }
+    };
+    refreshFromCloud();
   }
 }
 

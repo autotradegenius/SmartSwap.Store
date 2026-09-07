@@ -92,7 +92,15 @@ function readSellModels(){
   return defaults.map(model => ({...model, ...(overrides[model.id] || {})})).filter(model => !model.hidden);
 }
 function saveSellModels(models){
-  localStorage.setItem('swapioSellModels', JSON.stringify(Object.fromEntries(models.map(model => [model.id, model]))));
+  const uniqueSellModels = uniqueModels(models);
+  localStorage.setItem('swapioSellModels', JSON.stringify(Object.fromEntries(uniqueSellModels.map(model => [model.id, model]))));
+  const catalog = readSellCatalog();
+  uniqueSellModels.forEach(model => {
+    const index = catalog.findIndex(existing => existing.id === model.id);
+    if (index >= 0) catalog[index] = {...catalog[index], ...model};
+    else catalog.push({...model});
+  });
+  saveSellCatalog(catalog);
 }
 const defaultBuyModels = [
   {id:'iphone-12',name:'iPhone 12',spec:'128GB · Apple',price:'32999',oldPrice:'52000',grade:'Superb',warranty:'30-day'},
@@ -113,18 +121,42 @@ function readBuyModels(){
   return allModels.map(model => ({...model, ...(overrides[model.id] || {})})).filter(model => !model.hidden);
 }
 function saveBuyModels(models){
-  localStorage.setItem('swapioBuyModels', JSON.stringify(Object.fromEntries(models.map(model => [model.id, model]))));
+  const uniqueBuyModels = uniqueModels(models);
+  localStorage.setItem('swapioBuyModels', JSON.stringify(Object.fromEntries(uniqueBuyModels.map(model => [model.id, model]))));
+  if (window.swapioData?.saveBuyCatalog) window.swapioData.saveBuyCatalog(uniqueBuyModels).catch(error => console.warn('Buy catalog cloud sync failed.', error));
 }
 const inventoryKey = window.swapioData?.STORAGE_KEYS?.inventory || 'swapioInventory';
 const returnsKey = window.swapioData?.STORAGE_KEYS?.returns || 'swapioReturns';
 const billsKey = window.swapioData?.STORAGE_KEYS?.bills || 'swapioBills';
 const catalogKey = 'swapioPhoneCatalog';
 const sellCatalogKey = 'swapioSellCatalog';
+function modelIdentity(value, brand) {
+  const normalizedBrand = String(brand || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  let normalizedName = String(value || '').trim().toLowerCase();
+  const brandPrefix = new RegExp(`^${String(brand || '').trim()}[\\s-]+`, 'i');
+  normalizedName = normalizedName.replace(brandPrefix, '').replace(/[^a-z0-9]+/g, '');
+  return `${normalizedBrand}:${normalizedName}`;
+}
+function hasDuplicateModel(models, model, ignoredId = '') {
+  const identity = modelIdentity(model.name, model.brand);
+  return models.some(existing => existing.id !== ignoredId && modelIdentity(existing.name, existing.brand) === identity);
+}
+function uniqueModels(models) {
+  const seen = new Set();
+  return models.filter(model => {
+    const identity = modelIdentity(model.name, model.brand);
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  });
+}
 function readSellCatalog(){
   return JSON.parse(localStorage.getItem(sellCatalogKey) || '[]');
 }
 function saveSellCatalog(items){
-  localStorage.setItem(sellCatalogKey, JSON.stringify(items));
+  const uniqueItems = uniqueModels(items);
+  localStorage.setItem(sellCatalogKey, JSON.stringify(uniqueItems));
+  if (window.swapioData?.saveSellCatalog) window.swapioData.saveSellCatalog(uniqueItems).catch(error => console.warn('Sell catalog cloud sync failed.', error));
 }
 
 function readInventory(){
@@ -705,9 +737,13 @@ function renderAdminProducts(){
 
 async function renderAdminSubmissions(){
   const list = document.getElementById('adminSubmissions');
-  const submissions = await readSubmissions();
-  list.innerHTML = submissions.length ? submissions.map(item => `
-    <article class="admin-item submission-item"><div><span class="pill pill-coral">${item.type}</span><h4>${item.name || 'Customer'}</h4><p>${item.phone || item.email || 'No contact'} · ${item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}</p><small>${item.model || item.issue || item.details || 'No details'}${item.price ? ` · ${item.price}` : ''}${item.payment ? ` · ${item.payment}` : ''}${item.utr ? ` · UTR: ${item.utr}` : ''}${item.paymentStatus ? ` · ${item.paymentStatus}` : ''}</small></div><div class="admin-photos">${(item.photos || []).map(photo => `<img src="${photo}" alt="Customer upload">`).join('')}</div></article>`).join('') : '<p class="admin-empty">No customer submissions yet.</p>';
+  try {
+    const submissions = await readSubmissions();
+    list.innerHTML = submissions.length ? submissions.map(item => `
+      <article class="admin-item submission-item"><div><span class="pill pill-coral">${item.type || 'request'}</span><h4>${item.name || 'Customer'}</h4><p>${item.customerPhone || item.phone || item.email || 'No contact'} · ${item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}</p><small>${Object.entries(item).filter(([key, value]) => !['type', 'name', 'phone', 'customerPhone', 'email', 'createdAt', 'photos', 'status'].includes(key) && value !== '').map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`).join(' · ') || 'No details'}</small></div><div class="admin-photos">${(item.photos || []).map(photo => `<img src="${photo}" alt="Customer upload">`).join('')}</div></article>`).join('') : '<p class="admin-empty">No customer submissions yet.</p>';
+  } catch (error) {
+    list.innerHTML = `<p class="admin-empty">Could not load customer requests. ${error.message || 'Check Firebase permissions.'}</p>`;
+  }
 }
 
 const adminCatalogViews = { buy: null, sell: null };
@@ -766,7 +802,7 @@ function renderAdminSellModels(){
   if(!list) return;
   const presetModels = readSellModels().map(model => ({...model, source:'preset'}));
   const catalogModels = readSellCatalog().map((model, index) => ({...model, source:'catalog', catalogIndex:index}));
-  const models = [...presetModels, ...catalogModels];
+  const models = [...presetModels, ...catalogModels].filter((model, index, all) => all.findIndex(candidate => modelIdentity(candidate.name, candidate.brand) === modelIdentity(model.name, model.brand)) === index);
   if(!models.length){
     list.innerHTML = '<p class="admin-empty">No phones in sell catalog yet. Use "Add sell phone" above.</p>';
     return;
@@ -793,7 +829,7 @@ function renderAdminBuyModels(){
     grade: product.grade || 'Superb',
     warranty: product.warranty || '30-day'
   }));
-  const models = [...buyModels, ...customProducts];
+  const models = [...buyModels, ...customProducts].filter((model, index, all) => all.findIndex(candidate => modelIdentity(candidate.name, candidate.brand || brandFromSpec(candidate.spec)) === modelIdentity(model.name, model.brand || brandFromSpec(model.spec))) === index);
   if(!models.length){
     list.innerHTML = '<p class="admin-empty">No phones in buy catalog yet. Use "Add phone" above.</p>';
     return;
@@ -819,6 +855,8 @@ async function loadAllDataFromCloud() {
   const cloudProducts = await loadProductsFromCloud();
   const cloudInventory = await loadInventoryFromCloud();
   const cloudReturns = await loadReturnsFromCloud();
+  const cloudBuyCatalog = await window.swapioData?.loadBuyCatalogFromCloud?.();
+  const cloudSellCatalog = await window.swapioData?.loadSellCatalogFromCloud?.();
   
   if (cloudProducts !== null) {
     localStorage.setItem(productStoreKey, JSON.stringify(cloudProducts));
@@ -828,6 +866,13 @@ async function loadAllDataFromCloud() {
   }
   if (cloudReturns !== null) {
     localStorage.setItem(returnsKey, JSON.stringify(cloudReturns));
+  }
+  if (cloudBuyCatalog !== null && cloudBuyCatalog !== undefined) {
+    localStorage.setItem('swapioBuyCatalog', JSON.stringify(cloudBuyCatalog));
+    localStorage.setItem('swapioBuyModels', JSON.stringify(Object.fromEntries(cloudBuyCatalog.map(model => [model.id, model]))));
+  }
+  if (cloudSellCatalog !== null && cloudSellCatalog !== undefined) {
+    localStorage.setItem(sellCatalogKey, JSON.stringify(cloudSellCatalog));
   }
 }
 
@@ -1038,13 +1083,40 @@ function setupAdmin(){
     
     const editIndex = data.editIndex;
     delete data.editIndex;
-    const readImage = file => file ? new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsDataURL(file); }) : Promise.resolve('');
+    const readImage = file => file ? new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => {
+          const canvas = document.createElement('canvas');
+          const canvasSize = 800;
+          const padding = 64;
+          const scale = Math.min((canvasSize - padding * 2) / image.width, (canvasSize - padding * 2) / image.height, 1);
+          const width = Math.max(1, Math.round(image.width * scale));
+          const height = Math.max(1, Math.round(image.height * scale));
+          canvas.width = canvasSize;
+          canvas.height = canvasSize;
+          const context = canvas.getContext('2d');
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, canvasSize, canvasSize);
+          context.drawImage(image, (canvasSize - width) / 2, (canvasSize - height) / 2, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }) : Promise.resolve('');
     const frontImage = await readImage(form.elements.frontPhoto.files[0]);
     const backImage = await readImage(form.elements.backPhoto.files[0]);
     const products = readProducts();
     if(editIndex.startsWith('custom:')){
       const productIndex = Number(editIndex.slice(7));
       const product = products[productIndex];
+      if(products.some((existing, index) => index !== productIndex && hasDuplicateModel(products, {...data, id: existing.id}, existing.id))){
+        window.alert('This model already exists in the Buy catalog.');
+        return;
+      }
+      data.id = product.id || `product-${Date.now()}`;
       data.frontImage = frontImage || product.frontImage || product.photos?.[0] || '';
       data.backImage = backImage || product.backImage || '';
       data.visible = product.visible;
@@ -1054,6 +1126,10 @@ function setupAdmin(){
       const buyModels = readBuyModels();
       const buyId = editIndex.slice(4);
       const buyModel = buyModels.find(model => model.id === buyId);
+      if(hasDuplicateModel(buyModels, data, buyId)){
+        window.alert('This model already exists in the Buy catalog.');
+        return;
+      }
       buyModel.name = data.name;
       buyModel.brand = data.brand;
       buyModel.spec = data.details || data.brand;
@@ -1069,6 +1145,10 @@ function setupAdmin(){
       const sellModels = readSellModels();
       const sellId = editIndex.slice(5);
       const sellModel = sellModels.find(model => model.id === sellId);
+      if(hasDuplicateModel(sellModels, data, sellId)){
+        window.alert('This model already exists in the Sell catalog.');
+        return;
+      }
       sellModel.name = data.name;
       sellModel.brand = data.brand;
       sellModel.spec = data.details || data.brand;
@@ -1093,9 +1173,17 @@ function setupAdmin(){
         hidden: false
       };
       if(raw === 'new'){
+        if(hasDuplicateModel([...readSellModels(), ...catalog], entry)){
+          window.alert('This model already exists in the Sell catalog.');
+          return;
+        }
         catalog.unshift(entry);
       } else {
         const idx = Number(raw);
+        if(hasDuplicateModel([...readSellModels(), ...catalog], entry, catalog[idx].id)){
+          window.alert('This model already exists in the Sell catalog.');
+          return;
+        }
         entry.id = catalog[idx].id;
         entry.image = frontImage || catalog[idx].image || '';
         entry.hidden = catalog[idx].hidden;
@@ -1111,6 +1199,11 @@ function setupAdmin(){
       data.visible = oldProduct.visible;
       products[Number(editIndex)] = data;
     } else {
+      if(hasDuplicateModel([...readBuyModels(), ...products], data)){
+        window.alert('This model already exists in the Buy catalog.');
+        return;
+      }
+      data.id = `product-${Date.now()}`;
       data.frontImage = frontImage;
       data.backImage = backImage;
       data.visible = true;

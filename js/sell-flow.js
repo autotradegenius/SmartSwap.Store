@@ -152,7 +152,11 @@
   }
 
   function getCatalogModelKey(model) {
-    return `${normalizeCatalogValue(model.brand)}:${normalizeCatalogValue(model.name)}`;
+    const brand = normalizeCatalogValue(model.brand);
+    let name = String(model.name || '').trim();
+    const brandPrefix = new RegExp(`^${String(model.brand || '').trim()}[\\s-]+`, 'i');
+    name = name.replace(brandPrefix, '');
+    return `${brand}:${normalizeCatalogValue(name)}`;
   }
 
   function getSellModels() {
@@ -240,7 +244,8 @@
         if (brandPicker) brandPicker.hidden = true;
         if (pageTitle) pageTitle.textContent = `Select ${brand.charAt(0).toUpperCase()}${brand.slice(1)} model`;
       }
-    const models = getSellModels().filter(model => brand === 'all' || normalizeCatalogValue(model.brand) === normalizeCatalogValue(brand));
+    const filteredModels = getSellModels().filter(model => brand === 'all' || normalizeCatalogValue(model.brand) === normalizeCatalogValue(brand));
+    const models = brand === 'all' ? filteredModels.slice(0, 6) : filteredModels;
 
     if (!models.length) {
       grid.innerHTML = '<p class="sell-step-subtitle">No models available for this brand.</p>';
@@ -732,6 +737,10 @@
     setupAccessoryFlow();
     setupLoginPage();
   }
+
+  window.addEventListener('swapioCatalogUpdated', () => {
+    if (document.getElementById('sellFlowBrandGrid')) renderBrandGrid();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
