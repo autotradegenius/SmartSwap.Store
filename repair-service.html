@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartSwap.Store - Choose repair phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="repair">
+<div id="site-header"></div>
+<main class="section wrap repair-flow-page">
+  <div class="sell-page-breadcrumb"><a href="repair.html">Repair</a> &nbsp;&gt;&nbsp; <span id="repairServiceBreadcrumb">Choose your phone</span></div>
+  <div class="section-head repair-flow-heading">
+    <div class="eyebrow">Repair estimate</div>
+    <h1 id="repairServiceTitle">Choose your phone</h1>
+    <p id="repairServiceDescription">Choose up to three repair services for your phone and get the total before submitting.</p>
+  </div>
+  <section class="repair-order-panel">
+    <div class="repair-order-heading"><h2>Build your repair request</h2><p>Choose your brand, model, and up to three parts to replace.</p></div>
+    <form id="repairModelRequestForm" class="form-fields" data-auth-required>
+      <div class="repair-phone-selection"><select id="repairBrand" name="repairBrand" required><option value="">Choose brand</option></select><select id="repairModel" name="repairModel" required><option value="">Choose model</option></select></div>
+      <div id="repairLines" class="repair-lines"></div>
+      <input name="model" id="repairRequestModel" type="hidden" required>
+      <input name="issue" id="repairRequestIssue" type="hidden" required>
+      <input name="totalPrice" id="repairTotalPrice" type="hidden">
+      <input name="name" type="text" placeholder="Your name" required>
+      <input name="phone" type="tel" placeholder="Phone number" required>
+      <textarea name="details" rows="3" placeholder="Describe anything else we should know"></textarea>
+      <div class="repair-total-row"><span>Estimated total</span><strong id="repairTotal"></strong></div>
+      <button class="btn btn-coral" type="submit">Submit repair request</button>
+      <div class="form-msg"></div>
+    </form>
+  </section>
+</main>
+<div id="site-footer"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/firebase-auth.js"></script>
+<script src="js/firebase-data.js"></script>
+<script src="js/site-config.js"></script>
+<script src="js/main.js"></script>
+<script src="js/customer-forms.js"></script>
+<script src="js/sell-master-catalog.js"></script>
+<script src="js/repair-flow.js"></script>
+</body>
+</html>

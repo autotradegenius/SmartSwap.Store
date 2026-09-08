@@ -59,6 +59,7 @@
 <script src="js/firebase-auth.js"></script>
 <script src="js/main.js"></script>
 <script src="js/customer-forms.js"></script>
+<script src="js/sell-master-catalog.js"></script>
 <script>
 // ---------- repair grid ----------
 const repairServices = [
@@ -70,12 +71,12 @@ const repairServices = [
   {name:'Software & Performance', desc:'OS issues, slow performance, boot loops, and more.', price:'From ₹499', time:'20 min'},
 ];
 document.getElementById('repairGrid').innerHTML = repairServices.map(s=>`
-  <div class="service-card">
+  <a class="service-card repair-service-link" href="repair-service.html?service=${encodeURIComponent(s.name)}">
     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 005.4-5.4l-2.1 2.1-2-2 2.1-2.1z"/></svg>
     <h4>${s.name}</h4>
     <p>${s.desc}</p>
     <div class="meta"><span>${s.price}</span><span>${s.time}</span></div>
-  </div>`).join('');
+  </a>`).join('');
 </script>
 </body>
 </html>

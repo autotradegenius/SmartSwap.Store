@@ -14,7 +14,11 @@ function getSharedInventory() {
 
 window.smartSwapContact = {
   call: '+91 9718655625',
-  whatsapp: '+91 9718655625'
+  whatsapp: '+91 9718655625',
+  email: 'smartswap.store@gmail.com',
+  address: 'Shop No. 3, Duggal Colony, Gat No. 1, Deoli Road, New Delhi - 110080',
+  instagram: 'SmartSwap.Store',
+  facebook: 'SmartSwap.Store'
 };
 
 function pickReply(value) {
@@ -148,8 +152,10 @@ window.smartSwapChatbotResponses = {
   complaint: "Sorry to hear you're facing an issue! Please share the details on WhatsApp: +91 9718655625 and our team will personally look into it and get back to you.",
 
   // ---------- CONTACT / LOCATION / HOURS ----------
-  contact: "You can reach us directly on WhatsApp: +91 9718655625",
-  location: "For our exact address and directions, message us on WhatsApp: +91 9718655625",
+  contact: "You can reach SmartSwap.Store on WhatsApp: +91 9718655625 or email: smartswap.store@gmail.com. Our store is at Shop No. 3, Duggal Colony, Gat No. 1, Deoli Road, New Delhi - 110080.",
+  email_contact: "Our email is smartswap.store@gmail.com. You can also reach us on WhatsApp at +91 9718655625.",
+  social_media: "Find us on Instagram and Facebook as SmartSwap.Store. You can also WhatsApp us at +91 9718655625.",
+  location: "Our store address is Shop No. 3, Duggal Colony, Gat No. 1, Deoli Road, New Delhi - 110080. You can confirm directions on WhatsApp: +91 9718655625.",
   hours: "Ping us on WhatsApp (+91 9718655625) and we'll confirm today's hours right away.",
   working_days: "We're open all days except major holidays — for exact working days this week, message us on WhatsApp: +91 9718655625.",
 
@@ -238,6 +244,8 @@ window.smartSwapChatbotResponses = {
     complaint: ['complaint', 'file a complaint', 'not happy', 'bad experience', 'escalate', 'raise an issue'],
 
     contact: ['contact', 'call', 'whatsapp', 'number', 'phone number', 'talk to someone'],
+    email_contact: ['email', 'email address', 'mail id', 'gmail', 'send an email'],
+    social_media: ['instagram', 'insta', 'facebook', 'social media', 'social handle', 'social account'],
     location: ['location', 'address', 'where are you', 'where is your store', 'shop address', 'store location'],
     hours: ['hours', 'timing', 'open', 'closed', 'what time'],
     working_days: ['working days', 'which days are you open', 'open on sunday', 'weekly off'],
@@ -305,6 +313,7 @@ const smartSwapIntentPriority = {
   sell_process: 2, sell_condition: 2, sell_documents: 2, sell_payment_speed: 2, sell_dead_phone: 2,
   buy_warranty: 2, buy_emi: 2, buy_brands: 2, pickup_cost: 2, data_wipe: 2, payment_methods: 2,
   discount_student: 2, discount_referral: 2, insurance: 2, data_transfer_help: 2, old_battery_recycle: 2,
+  email_contact: 3, social_media: 3, location: 3,
   data_backup_before_update: 2, bulk_repair: 2, complaint: 2, working_days: 2
 };
 

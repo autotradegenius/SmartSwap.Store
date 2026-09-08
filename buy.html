@@ -32,6 +32,12 @@
 
     <div class="brand-logo-grid buy-brand-picker" data-brand-picker="compact" aria-label="Phone brands"></div>
 
+    <div class="sell-search-box buy-search-box" id="buySearchBox">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
+      <input id="buyModelSearch" type="text" placeholder="Search model" aria-label="Search model" autocomplete="off">
+      <div id="buySearchResults" class="model-search-results" hidden></div>
+    </div>
+
     <section class="flash-sale-section" aria-labelledby="flashSaleTitle">
       <div class="flash-sale-heading"><h3 id="flashSaleTitle">Flash Sale</h3><span id="flashSaleLabel">Featured phones</span></div>
       <div class="flash-sale-grid" id="flashSaleGrid"></div>
@@ -119,7 +125,7 @@ const flashSaleGrid = document.getElementById('flashSaleGrid');
 
 function renderBuyModels(models, target = buyGrid){
   target.innerHTML = models.length ? models.map(m=>`
-  <div class="product-card">
+  <div class="product-card" data-buy-product-id="${m.id}">
     <div class="${m.image ? 'phone-image-stack' : 'phone-icon'}">${m.backImage ? `<img class="phone-back" src="${m.backImage}" alt="${m.name} back" loading="lazy">` : ''}${m.image ? `<img class="phone-front" src="${m.image}" alt="${m.name} front" loading="lazy" onerror="this.parentElement.innerHTML=window.swapioPhoneSVG">` : phoneSVG}</div>
     <h4>${m.name}</h4>
     <div class="spec">${m.spec}</div>
@@ -136,8 +142,9 @@ function renderBuyModels(models, target = buyGrid){
 const brandFilter = new URLSearchParams(window.location.search).get('brand');
 const showAllBrands = new URLSearchParams(window.location.search).get('brands') === 'all';
 const showAllPhones = new URLSearchParams(window.location.search).get('all') === '1';
+const normalizeBuyBrand = value => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
 let visibleBuyModels = brandFilter
-  ? buyModels.filter(model => `${model.brand || ''} ${model.name} ${model.spec}`.toLowerCase().includes(brandFilter.toLowerCase()))
+  ? buyModels.filter(model => normalizeBuyBrand(model.brand || String(model.spec || '').split('·').pop()) === normalizeBuyBrand(brandFilter))
   : buyModels;
 const buyScopeSelected = Boolean(brandFilter || showAllPhones);
 if (brandFilter) {
@@ -151,6 +158,33 @@ document.getElementById('buyFilters').hidden = !buyScopeSelected;
 renderBuyModels((buyScopeSelected ? visibleBuyModels : buyModels).slice(0, 5), flashSaleGrid);
 if (buyScopeSelected) renderBuyModels(visibleBuyModels);
 else buyGrid.innerHTML = '';
+
+const buySearchInput = document.getElementById('buyModelSearch');
+const buySearchResults = document.getElementById('buySearchResults');
+const buySearchBox = document.getElementById('buySearchBox');
+function closeBuySearch(){ buySearchResults.hidden = true; buySearchResults.innerHTML = ''; }
+function renderBuySearchResults(){
+  const query = buySearchInput.value.trim().toLowerCase();
+  if (!query) { closeBuySearch(); return; }
+  const searchModels = brandFilter ? visibleBuyModels : buyModels;
+  const matches = searchModels.filter(model => `${model.name || ''} ${model.brand || ''} ${model.spec || ''}`.toLowerCase().includes(query));
+  buySearchResults.innerHTML = matches.length ? matches.map(model => `<button type="button" class="model-search-result" data-buy-search-id="${model.id}" data-buy-search-brand="${normalizeBuyBrand(model.brand || String(model.spec || '').split('·').pop())}"><span>${model.name}</span><small>${model.brand || String(model.spec || '').split('·').pop() || ''}</small></button>`).join('') : '<div class="model-search-empty">No buy phones found.</div>';
+  buySearchResults.hidden = false;
+}
+if (buySearchInput) {
+  buySearchInput.addEventListener('input', renderBuySearchResults);
+  buySearchInput.addEventListener('focus', renderBuySearchResults);
+  buySearchInput.addEventListener('keydown', event => { if (event.key === 'Escape') { closeBuySearch(); buySearchInput.blur(); } });
+  buySearchResults.addEventListener('click', event => {
+    const result = event.target.closest('[data-buy-search-id]');
+    if (!result) return;
+    const card = document.querySelector(`[data-buy-product-id="${CSS.escape(result.dataset.buySearchId)}"]`);
+    closeBuySearch();
+    if (card) card.scrollIntoView({behavior:'smooth', block:'center'});
+    else window.location.href = `buy.html?brand=${encodeURIComponent(result.dataset.buySearchBrand)}`;
+  });
+  document.addEventListener('click', event => { if (!buySearchBox.contains(event.target)) closeBuySearch(); });
+}
 
 async function syncBuyCatalogFromCloud(){
   try {

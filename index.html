@@ -31,6 +31,7 @@
           <div class="cashify-search-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
             <input type="text" placeholder="Search your phone to sell — e.g. iPhone 12" aria-label="Search phone to sell">
+            <div class="model-search-results home-search-results" hidden></div>
           </div>
           <div class="cashify-cta-row">
             <a href="sell-flow/brand" class="btn btn-ink">Get Price</a>
@@ -43,6 +44,7 @@
           <div class="cashify-search-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
             <input type="text" placeholder="Search model or brand — e.g. Galaxy S23" aria-label="Search phone to buy">
+            <div class="model-search-results home-search-results" hidden></div>
           </div>
           <div class="cashify-cta-row">
             <a href="buy" class="btn btn-ink">Browse phones</a>
@@ -55,6 +57,7 @@
           <div class="cashify-search-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
             <input type="text" placeholder="Tell us the issue — screen, battery, camera" aria-label="Search repair issue">
+            <div class="model-search-results home-search-results" hidden></div>
           </div>
           <div class="cashify-cta-row">
             <a href="repair" class="btn btn-ink">Book repair</a>
@@ -184,20 +187,48 @@
 <script src="js/firebase-auth.js"></script>
 <script src="js/firebase-data.js"></script>
 <script src="js/brand-experience.js"></script>
+<script src="js/sell-master-catalog.js"></script>
+<script src="js/buy-master-catalog.js"></script>
 <script src="js/site-config.js"></script>
 <script src="js/chatbot-responses.js?v=2"></script>
 <script src="js/main.js"></script>
 <script>
   const homeBuyModels = [
-    {name:'iPhone 12', spec:'128GB · Apple', now:'₹32,999', was:'₹52,000', grade:'Superb', warranty:'30-day', image:'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?auto=format&fit=crop&w=500&q=85'},
-    {name:'Galaxy S21 FE', spec:'128GB · Samsung', now:'₹21,499', was:'₹34,000', grade:'Good', warranty:'30-day'},
-    {name:'OnePlus 9R', spec:'128GB · OnePlus', now:'₹17,999', was:'₹28,000', grade:'Superb', warranty:'30-day'},
-    {name:'Redmi Note 12', spec:'128GB · Xiaomi', now:'₹9,999', was:'₹15,500', grade:'Fair', warranty:'15-day', image:'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=500&q=85'},
-    {name:'Pixel 7', spec:'128GB · Google', now:'₹29,999', was:'₹45,000', grade:'Superb', warranty:'30-day'}
+    {id:'iphone-12', name:'iPhone 12', spec:'128GB · Apple', now:'₹32,999', was:'₹52,000', grade:'Superb', warranty:'30-day', image:'https://images.unsplash.com/photo-1591337676887-a217a6970a8a?auto=format&fit=crop&w=500&q=85'},
+    {id:'galaxy-s21-fe', name:'Galaxy S21 FE', spec:'128GB · Samsung', now:'₹21,499', was:'₹34,000', grade:'Good', warranty:'30-day'},
+    {id:'oneplus-9r', name:'OnePlus 9R', spec:'128GB · OnePlus', now:'₹17,999', was:'₹28,000', grade:'Superb', warranty:'30-day'},
+    {id:'redmi-note-12', name:'Redmi Note 12', spec:'128GB · Xiaomi', now:'₹9,999', was:'₹15,500', grade:'Fair', warranty:'30-day', image:'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=500&q=85'},
+    {id:'pixel-7', name:'Pixel 7', spec:'128GB · Google', now:'₹29,999', was:'₹45,000', grade:'Superb', warranty:'30-day'}
   ];
+  const homeSellModels = [];
+  const homeRepairServices = [
+    {name:'Screen Replacement', desc:'Cracked screen and touch issues'},
+    {name:'Battery Replacement', desc:'Fast drain, battery health, or shutdowns'},
+    {name:'Camera Repair', desc:'Front or rear camera problems'},
+    {name:'Charging Port Fix', desc:'Loose or unresponsive charging port'},
+    {name:'Water Damage Recovery', desc:'Liquid damage diagnosis and recovery'},
+    {name:'Software & Performance', desc:'Slow phone, boot loops, and software issues'}
+  ];
+  if (Array.isArray(window.BUY_MASTER_MODELS)) {
+    window.BUY_MASTER_MODELS.forEach(model => {
+      if (!homeBuyModels.some(existing => existing.id === model.id)) homeBuyModels.push({...model, now:`₹${Number(model.price || 0).toLocaleString('en-IN')}`});
+    });
+  }
+  function addHomeSellModels(models){
+    (Array.isArray(models) ? models : []).forEach(model => {
+      if (!model || !model.name || !model.brand) return;
+      const key = `${String(model.brand).toLowerCase()}:${String(model.name).toLowerCase()}`;
+      if (!homeSellModels.some(existing => `${String(existing.brand).toLowerCase()}:${String(existing.name).toLowerCase()}` === key)) homeSellModels.push(model);
+    });
+  }
+  addHomeSellModels(window.DEFAULT_MODELS);
+  try { addHomeSellModels(JSON.parse(localStorage.getItem('swapioSellCatalog') || '[]')); } catch (error) {}
+  try { addHomeSellModels(JSON.parse(localStorage.getItem('swapioPhoneCatalog') || '[]')); } catch (error) {}
   const homeCatalogProducts = window.swapioData?.readProducts ? window.swapioData.readProducts() : JSON.parse(localStorage.getItem('swapioAdminProducts') || '[]');
   homeCatalogProducts.filter(product => product.visible !== false).forEach(product => {
     homeBuyModels.push({
+      id: product.id || `product-${product.name}-${product.brand || ''}`,
+      custom: true,
       name: product.name,
       spec: product.details || `${product.brand} · Admin listing`,
       now: `₹${Number(product.price || 0).toLocaleString('en-IN')}`,
@@ -209,10 +240,11 @@
   });
   const homeSaleGrid = document.getElementById('homeFlashSaleGrid');
   const homeGradeClass = {Superb:'pill-green', Good:'pill-gold', Fair:'pill-coral'};
+  let activeHomeFilter = 'all';
   function renderHomeSale(models) {
     homeSaleGrid.innerHTML = models.length ? models.slice(0, 5).map(model => `
       <div class="product-card">
-        <div class="${model.image ? 'phone-image-stack' : 'phone-icon'}">${model.image ? `<img src="${model.image}" alt="${model.name}" loading="lazy" onerror="this.parentElement.innerHTML=window.swapioPhoneSVG || ''">` : (window.swapioPhoneSVG || '')}</div>
+        <div class="${model.image ? 'phone-image-stack' : 'phone-icon'}">${model.image ? `<img class="phone-front" src="${model.image}" alt="${model.name}" loading="lazy" onerror="this.parentElement.innerHTML=window.swapioPhoneSVG || ''">` : (window.swapioPhoneSVG || '')}</div>
         <h4>${model.name}</h4>
         <div class="spec">${model.spec}</div>
         <div class="badge-row"><span class="pill ${homeGradeClass[model.grade]}">${model.grade}</span><span class="pill pill-gold">${model.warranty} warranty</span></div>
@@ -220,7 +252,8 @@
         <a class="btn btn-coral" href="buy" style="width:100%;text-align:center;">View phone</a>
       </div>`).join('') : '<p class="home-sale-empty">No phones available in this range yet.</p>';
   }
-  function filterHomeSale(filter) {
+  function filterHomeSale(filter = activeHomeFilter) {
+    activeHomeFilter = filter;
     renderHomeSale(homeBuyModels.filter(model => {
       const price = Number(model.now.replace(/[^0-9]/g, ''));
       if (filter === 'under-10k') return price < 10000;
@@ -240,6 +273,69 @@
     });
   }
 
+  function setupHomeSearch(input, models, mode){
+    if (!input) return;
+    const searchBox = input.closest('.cashify-search-wrap');
+    const results = searchBox.querySelector('.home-search-results');
+    const closeResults = () => { results.hidden = true; results.innerHTML = ''; };
+    const showResults = () => {
+      const query = input.value.trim().toLowerCase();
+      if (!query) { closeResults(); return; }
+      const matches = models.filter(model => `${model.name || ''} ${model.brand || ''} ${model.spec || ''} ${model.desc || ''}`.toLowerCase().includes(query)).slice(0, 8);
+      results.innerHTML = matches.length ? matches.map(model => {
+        if (mode === 'repair') return `<a class="model-search-result" href="repair.html#repairRequestForm"><span>${model.name}</span><small>${model.desc}</small></a>`;
+        const brand = String(model.brand || String(model.spec || '').split('·').pop() || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+        const modelId = model.id || String(model.name).toLowerCase().replace(/\s+/g, '-');
+        const href = mode === 'sell' ? `sell-flow/variant.html?model=${encodeURIComponent(modelId)}&brand=${encodeURIComponent(brand)}` : `buy.html?brand=${encodeURIComponent(brand)}`;
+        return `<a class="model-search-result" href="${href}"><span>${model.name}</span><small>${model.brand || String(model.spec || '').split('·').pop() || ''}</small></a>`;
+      }).join('') : `<div class="model-search-empty">No ${mode} results found.</div>`;
+      results.hidden = false;
+    };
+    input.addEventListener('input', showResults);
+    input.addEventListener('focus', showResults);
+    input.addEventListener('keydown', event => { if (event.key === 'Escape') { closeResults(); input.blur(); } });
+    document.addEventListener('click', event => { if (!searchBox.contains(event.target)) closeResults(); });
+    input._closeSearchResults = closeResults;
+  }
+  setupHomeSearch(document.querySelector('#tab-sell input'), homeSellModels, 'sell');
+  setupHomeSearch(document.querySelector('#tab-buy input'), homeBuyModels, 'buy');
+  setupHomeSearch(document.querySelector('#tab-repair input'), homeRepairServices, 'repair');
+
+  async function syncHomeBuyCatalogFromCloud(){
+    try {
+      const [cloudBuyModels, cloudProducts] = await Promise.all([
+        window.swapioData?.loadBuyCatalogFromCloud?.(),
+        window.swapioData?.loadProductsFromCloud?.()
+      ]);
+      const mergeModel = model => {
+        const index = homeBuyModels.findIndex(existing => existing.id === model.id || (existing.name || '').toLowerCase() === (model.name || '').toLowerCase());
+        if (index >= 0) Object.assign(homeBuyModels[index], model);
+        else if (model.custom) homeBuyModels.push(model);
+      };
+      if (Array.isArray(cloudBuyModels)) cloudBuyModels.forEach(model => {
+        const index = homeBuyModels.findIndex(existing => existing.id === model.id || (existing.name || '').toLowerCase() === (model.name || '').toLowerCase());
+        if (model.hidden) {
+          if (index >= 0) homeBuyModels.splice(index, 1);
+          return;
+        }
+        mergeModel({...model, now: model.now || `₹${Number(model.price || 0).toLocaleString('en-IN')}`, was: model.was || (model.oldPrice ? `₹${Number(model.oldPrice).toLocaleString('en-IN')}` : '')});
+      });
+      if (Array.isArray(cloudProducts)) cloudProducts.forEach(product => {
+        const id = product.id || `product-${product.name}-${product.brand || ''}`;
+        const index = homeBuyModels.findIndex(existing => existing.id === id);
+        if (product.visible === false) {
+          if (index >= 0 && homeBuyModels[index].custom) homeBuyModels.splice(index, 1);
+          return;
+        }
+        if (product.visible !== false) mergeModel({id, custom:true, name:product.name, spec:product.details || `${product.brand} · Admin listing`, now:`₹${Number(product.price || 0).toLocaleString('en-IN')}`, was:'', grade:product.grade || 'Superb', warranty:product.warranty || '30-day', image:product.frontImage || product.photos?.[0] || ''});
+      });
+      filterHomeSale();
+    } catch (error) {
+      console.warn('Index Buy catalog cloud sync failed.', error);
+    }
+  }
+  syncHomeBuyCatalogFromCloud();
+
   // Hero tab switch (Sell / Buy / Repair) — page-specific, so it lives here not in main.js
   const heroTabs = document.getElementById('heroTabs');
   if (heroTabs) {
@@ -251,6 +347,7 @@
       btn.classList.add('active');
       const target = document.getElementById('tab-' + btn.dataset.tab);
       if (target) target.classList.add('active');
+      document.querySelectorAll('.tab-panel input').forEach(input => { if (input._closeSearchResults) input._closeSearchResults(); });
     });
   }
 </script>

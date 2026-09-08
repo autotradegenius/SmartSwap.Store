@@ -6,6 +6,7 @@
     phoneCatalog: 'swapioPhoneCatalog',
     buyCatalog: 'swapioBuyCatalog',
     sellCatalog: 'swapioSellCatalog',
+    repairCatalog: 'swapioRepairCatalog',
     bills: 'swapioBills',
     billingCounter: 'swapioBillingCounter'
   };
@@ -17,6 +18,7 @@
     phoneCatalog: 'phoneCatalog',
     buyCatalog: 'buyCatalog',
     sellCatalog: 'sellCatalog',
+    repairCatalog: 'repairCatalog',
     bills: 'bills',
     billingCounter: 'billingCounter'
   };
@@ -206,6 +208,28 @@
     return Array.isArray(data.models) ? data.models : [];
   }
 
+  function readRepairCatalog() {
+    return safeParse(STORAGE_KEYS.repairCatalog, []);
+  }
+
+  function saveRepairCatalog(items) {
+    setLocalStorage(STORAGE_KEYS.repairCatalog, items);
+    return syncRepairCatalogToCloud(items);
+  }
+
+  async function syncRepairCatalogToCloud(items) {
+    const db = getDb();
+    if (!db) return false;
+    await setDocument('repairCatalog', { repairs: items, updatedAt: Date.now() });
+    return true;
+  }
+
+  async function loadRepairCatalogFromCloud() {
+    const data = await getDocument('repairCatalog');
+    if (!data) return null;
+    return Array.isArray(data.repairs) ? data.repairs : [];
+  }
+
   function readReturns() {
     return safeParse(STORAGE_KEYS.returns, []);
   }
@@ -350,6 +374,10 @@
     saveSellCatalog,
     syncSellCatalogToCloud,
     loadSellCatalogFromCloud,
+    readRepairCatalog,
+    saveRepairCatalog,
+    syncRepairCatalogToCloud,
+    loadRepairCatalogFromCloud,
     readReturns,
     saveReturns,
     syncReturnsToCloud,

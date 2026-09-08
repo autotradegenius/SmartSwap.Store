@@ -130,6 +130,7 @@ const returnsKey = window.swapioData?.STORAGE_KEYS?.returns || 'swapioReturns';
 const billsKey = window.swapioData?.STORAGE_KEYS?.bills || 'swapioBills';
 const catalogKey = 'swapioPhoneCatalog';
 const sellCatalogKey = 'swapioSellCatalog';
+const repairCatalogKey = 'swapioRepairCatalog';
 function modelIdentity(value, brand) {
   const normalizedBrand = String(brand || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
   let normalizedName = String(value || '').trim().toLowerCase();
@@ -176,6 +177,37 @@ function saveBills(items){
     return window.swapioData.saveBills(items);
   }
   localStorage.setItem(billsKey, JSON.stringify(items));
+}
+
+function readRepairCatalog(){
+  if(window.swapioData?.readRepairCatalog) return window.swapioData.readRepairCatalog();
+  return JSON.parse(localStorage.getItem(repairCatalogKey) || '[]');
+}
+function saveRepairCatalog(items){
+  if(window.swapioData?.saveRepairCatalog) return window.swapioData.saveRepairCatalog(items);
+  localStorage.setItem(repairCatalogKey, JSON.stringify(items));
+}
+function renderRepairCatalog(){
+  const list = document.getElementById('repairCatalogList');
+  if(!list) return;
+  const items = readRepairCatalog();
+  list.innerHTML = items.length ? `<table class="inventory-table"><thead><tr><th>Service</th><th>Brand</th><th>Model</th><th>Price</th><th>Time</th><th>Action</th></tr></thead><tbody>${items.map((item, index) => `<tr><td>${item.service}</td><td>${item.brand}</td><td>${item.model}</td><td>${formatCurrency(item.price)}</td><td>${item.time || '-'}</td><td><button class="btn btn-ghost" type="button" data-edit-repair="${index}">Edit</button><button class="btn btn-ghost" type="button" data-delete-repair="${index}">Delete</button></td></tr>`).join('')}</tbody></table>` : '<p class="admin-empty">No repair prices added yet.</p>';
+}
+function setupRepairCatalogManagement(){
+  const form = document.getElementById('repairCatalogForm');
+  const list = document.getElementById('repairCatalogList');
+  if(!form || !list) return;
+  const reset = () => { form.reset(); form.elements.repairIndex.value = ''; form.querySelector('button[type="submit"]').textContent = 'Add repair price'; document.getElementById('cancelRepairEdit').hidden = true; };
+  form.addEventListener('submit', event => { event.preventDefault(); const data = Object.fromEntries(new FormData(form).entries()); const index = data.repairIndex; delete data.repairIndex; const items = readRepairCatalog(); if(index === '') items.unshift(data); else items[Number(index)] = data; saveRepairCatalog(items); reset(); renderRepairCatalog(); });
+  document.getElementById('cancelRepairEdit').addEventListener('click', reset);
+  list.addEventListener('click', event => {
+    const edit = event.target.closest('[data-edit-repair]');
+    const remove = event.target.closest('[data-delete-repair]');
+    const items = readRepairCatalog();
+    if(edit){ const index = Number(edit.dataset.editRepair); const item = items[index]; Object.keys(item).forEach(key => { if(form.elements[key]) form.elements[key].value = item[key]; }); form.elements.repairIndex.value = index; form.querySelector('button[type="submit"]').textContent = 'Update repair price'; document.getElementById('cancelRepairEdit').hidden = false; form.scrollIntoView({behavior:'smooth', block:'center'}); }
+    if(remove){ const index = Number(remove.dataset.deleteRepair); if(!window.confirm(`Delete ${items[index].service} price for ${items[index].model}?`)) return; items.splice(index, 1); saveRepairCatalog(items); renderRepairCatalog(); }
+  });
+  renderRepairCatalog();
 }
 
 // ========== BRAND-AWARE PHONE CATALOG (still used to feed brand pages / Other Brands on the public site) ==========
@@ -735,12 +767,43 @@ function renderAdminProducts(){
     </article>`).join('') : '<p class="admin-empty">No admin products added yet.</p>';
 }
 
+let adminRequestType = 'buy';
+let adminRequestStatus = 'all';
+let adminSubmissionsCache = [];
+
+function submissionType(item){
+  const type = String(item.type || '').toLowerCase();
+  return ['buy', 'sell', 'repair', 'recycle'].includes(type) ? type : 'sell';
+}
+
+function submissionStatus(item){
+  return String(item.status || 'new').toLowerCase().replace(/\s+/g, '-');
+}
+
+function renderAdminSubmissionTabs(submissions){
+  document.querySelectorAll('[data-request-type]').forEach(tab => {
+    const type = tab.dataset.requestType;
+    const count = submissions.filter(item => submissionType(item) === type).length;
+    tab.querySelector('span').textContent = count;
+    const active = type === adminRequestType;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', String(active));
+  });
+}
+
 async function renderAdminSubmissions(){
   const list = document.getElementById('adminSubmissions');
   try {
-    const submissions = await readSubmissions();
-    list.innerHTML = submissions.length ? submissions.map(item => `
-      <article class="admin-item submission-item"><div><span class="pill pill-coral">${item.type || 'request'}</span><h4>${item.name || 'Customer'}</h4><p>${item.customerPhone || item.phone || item.email || 'No contact'} · ${item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}</p><small>${Object.entries(item).filter(([key, value]) => !['type', 'name', 'phone', 'customerPhone', 'email', 'createdAt', 'photos', 'status'].includes(key) && value !== '').map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`).join(' · ') || 'No details'}</small></div><div class="admin-photos">${(item.photos || []).map(photo => `<img src="${photo}" alt="Customer upload">`).join('')}</div></article>`).join('') : '<p class="admin-empty">No customer submissions yet.</p>';
+    adminSubmissionsCache = (await readSubmissions()) || [];
+    renderAdminSubmissionTabs(adminSubmissionsCache);
+    const filtered = adminSubmissionsCache.filter(item => submissionType(item) === adminRequestType && (adminRequestStatus === 'all' || submissionStatus(item) === adminRequestStatus));
+    const summary = document.getElementById('requestSummary');
+    if(summary) summary.textContent = `${adminRequestType.charAt(0).toUpperCase() + adminRequestType.slice(1)} queue · Total: ${filtered.length} · New: ${filtered.filter(item => submissionStatus(item) === 'new').length} · In progress: ${filtered.filter(item => submissionStatus(item) === 'in-progress').length} · Completed: ${filtered.filter(item => submissionStatus(item) === 'completed').length}`;
+    list.innerHTML = filtered.length ? filtered.map(item => {
+      const details = Object.entries(item).filter(([key, value]) => !['type', 'name', 'phone', 'customerPhone', 'email', 'createdAt', 'photos', 'status'].includes(key) && value !== '').map(([key, value]) => `<span><strong>${key.replace(/([A-Z])/g, ' $1')}</strong>${typeof value === 'object' ? JSON.stringify(value) : value}</span>`).join('');
+      const status = submissionStatus(item);
+      return `<article class="submission-item"><div class="submission-main"><div class="submission-heading"><span class="pill pill-coral">${submissionType(item)}</span><span class="submission-status">${status.replace('-', ' ')}</span></div><h4>${item.name || 'Customer'}</h4><p>${item.customerPhone || item.phone || item.email || 'No contact'} · ${item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}</p><div class="submission-details">${details || '<span>No additional details</span>'}</div></div>${item.photos?.length ? `<div class="admin-photos">${item.photos.map(photo => `<img src="${photo}" alt="Customer upload">`).join('')}</div>` : ''}</article>`;
+    }).join('') : '<p class="admin-empty">No requests in this queue.</p>';
   } catch (error) {
     list.innerHTML = `<p class="admin-empty">Could not load customer requests. ${error.message || 'Check Firebase permissions.'}</p>`;
   }
@@ -754,6 +817,10 @@ function catalogBrandLabel(model){
   if(brand) return brand.charAt(0).toUpperCase() + brand.slice(1);
   const specBrand = String(model.spec || '').split('·').pop().trim();
   return specBrand || 'Other';
+}
+
+function catalogModelBrand(model){
+  return model.brand || String(model.spec || '').split('·').pop().trim();
 }
 
 function catalogVariantSummary(model){
@@ -779,7 +846,7 @@ function renderCatalogBrandPicker(list, models, type, title){
 }
 
 function renderCatalogModels(list, models, type, view){
-  const filtered = models.filter(model => catalogBrandLabel(model).toLowerCase() === view);
+  const filtered = view === '__all__' ? models : models.filter(model => catalogBrandLabel(model).toLowerCase() === view);
   const rows = filtered.map(model => type === 'sell' ? `
     <article class="admin-item" data-sell-type="${model.source}" data-sell-ref="${model.source === 'catalog' ? model.catalogIndex : model.id}" style="cursor:pointer;">
       ${model.image ? `<img src="${model.image}" alt="${model.name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">` : '<div class="admin-thumb">PHONE</div>'}
@@ -793,7 +860,8 @@ function renderCatalogModels(list, models, type, view){
       <button class="btn btn-ghost" type="button" data-buy-edit>Edit</button>
       ${model.custom ? `<button class="btn btn-ghost" type="button" data-toggle-product="${model.customIndex}">${model.visible ? 'Hide' : 'Show'}</button><button class="btn btn-ghost" type="button" data-delete-product="${model.customIndex}">Delete</button>` : `<button class="btn btn-ghost" type="button" data-delete-buy-preset="${model.id}">Delete</button>`}
     </article>`).join('');
-  list.innerHTML = `<div class="admin-catalog-browser-head"><button class="btn btn-ghost" type="button" data-catalog-back="${type}">Back to brands</button><strong>${filtered.length ? catalogBrandLabel(filtered[0]) : view}</strong><span>${filtered.length} models</span></div>${rows || '<p class="admin-empty">No models in this brand.</p>'}`;
+  const heading = view === '__all__' ? `All ${type} models` : (filtered.length ? catalogBrandLabel(filtered[0]) : view);
+  list.innerHTML = `<div class="admin-catalog-browser-head"><button class="btn btn-ghost" type="button" data-catalog-back="${type}">Back to brands</button><strong>${heading}</strong><span>${filtered.length} models</span></div>${rows || '<p class="admin-empty">No models in this brand.</p>'}`;
 }
 
 // Show all sell models through a brand-first browser.
@@ -829,7 +897,7 @@ function renderAdminBuyModels(){
     grade: product.grade || 'Superb',
     warranty: product.warranty || '30-day'
   }));
-  const models = [...buyModels, ...customProducts].filter((model, index, all) => all.findIndex(candidate => modelIdentity(candidate.name, candidate.brand || brandFromSpec(candidate.spec)) === modelIdentity(model.name, model.brand || brandFromSpec(model.spec))) === index);
+  const models = [...buyModels, ...customProducts].filter((model, index, all) => all.findIndex(candidate => modelIdentity(candidate.name, catalogModelBrand(candidate)) === modelIdentity(model.name, catalogModelBrand(model))) === index);
   if(!models.length){
     list.innerHTML = '<p class="admin-empty">No phones in buy catalog yet. Use "Add phone" above.</p>';
     return;
@@ -857,6 +925,7 @@ async function loadAllDataFromCloud() {
   const cloudReturns = await loadReturnsFromCloud();
   const cloudBuyCatalog = await window.swapioData?.loadBuyCatalogFromCloud?.();
   const cloudSellCatalog = await window.swapioData?.loadSellCatalogFromCloud?.();
+  const cloudRepairCatalog = await window.swapioData?.loadRepairCatalogFromCloud?.();
   
   if (cloudProducts !== null) {
     localStorage.setItem(productStoreKey, JSON.stringify(cloudProducts));
@@ -874,6 +943,9 @@ async function loadAllDataFromCloud() {
   if (cloudSellCatalog !== null && cloudSellCatalog !== undefined) {
     localStorage.setItem(sellCatalogKey, JSON.stringify(cloudSellCatalog));
   }
+  if (cloudRepairCatalog !== null && cloudRepairCatalog !== undefined) {
+    localStorage.setItem(repairCatalogKey, JSON.stringify(cloudRepairCatalog));
+  }
 }
 
 function setupAdmin(){
@@ -887,6 +959,7 @@ function setupAdmin(){
   const emailInput = document.getElementById('adminEmail');
   const passwordInput = document.getElementById('adminPassword');
   const auth = initializeFirebaseAuth();
+  setupRepairCatalogManagement();
 
   const showDashboardFallback = async () => {
     sessionStorage.setItem('swapioAdminLoggedIn', 'true');
@@ -906,10 +979,6 @@ function setupAdmin(){
     auth.onAuthStateChanged(async user => {
       if(!user){
         if(sessionStorage.getItem('swapioAdminLoggedIn') === 'true') sessionStorage.removeItem('swapioAdminLoggedIn');
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          await showDashboardFallback();
-          return;
-        }
         login.hidden = false;
         dashboard.hidden = true;
         return;
@@ -935,7 +1004,9 @@ function setupAdmin(){
       renderAdminProducts(); renderAdminBuyModels(); renderAdminSellModels(); renderAdminSubmissions();
     });
   } else {
-    showDashboardFallback();
+    login.hidden = false;
+    dashboard.hidden = true;
+    showAdminMessage('Firebase Auth is not configured. Configure Firebase before opening the admin dashboard.');
   }
 
 
@@ -1238,9 +1309,11 @@ function setupAdmin(){
     if(presetRemove){
       const id = presetRemove.dataset.deleteBuyPreset;
       if(!window.confirm('Remove this Buy catalog model?')) return;
+      const model = readBuyModels().find(entry => entry.id === id);
       const overrides = JSON.parse(localStorage.getItem('swapioBuyModels') || '{}');
       overrides[id] = {...(overrides[id] || {}), hidden:true};
       localStorage.setItem('swapioBuyModels', JSON.stringify(overrides));
+      if (model) saveBuyModels([...readBuyModels(), {...model, hidden:true}]);
       renderAdminBuyModels();
       return;
     }
@@ -1295,9 +1368,11 @@ function setupAdmin(){
     if(presetRemove){
       const id = presetRemove.dataset.deleteSellPreset;
       if(!window.confirm('Remove this Sell catalog model?')) return;
+      const model = readSellModels().find(entry => entry.id === id);
       const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
       overrides[id] = {...(overrides[id] || {}), hidden:true};
       localStorage.setItem('swapioSellModels', JSON.stringify(overrides));
+      if (model) saveSellModels([...readSellModels(), {...model, hidden:true}]);
       renderAdminSellModels();
       return;
     }
@@ -1386,8 +1461,10 @@ function setupAdmin(){
     if(back){ adminCatalogViews.sell = null; renderAdminSellModels(); }
   });
   document.getElementById('refreshSubmissions').addEventListener('click', renderAdminSubmissions);
+  document.getElementById('requestStatusFilter').addEventListener('change', event => { adminRequestStatus = event.target.value; renderAdminSubmissions(); });
+  document.querySelectorAll('[data-request-type]').forEach(tab => tab.addEventListener('click', () => { adminRequestType = tab.dataset.requestType; renderAdminSubmissions(); }));
   
-  document.querySelectorAll('[data-admin-tab]').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('[data-admin-tab]').forEach(item => item.classList.remove('active')); tab.classList.add('active'); document.getElementById('adminCatalogTab').hidden = tab.dataset.adminTab !== 'catalog'; document.getElementById('adminInventoryTab').hidden = tab.dataset.adminTab !== 'inventory'; document.getElementById('adminBillingTab').hidden = tab.dataset.adminTab !== 'billing'; document.getElementById('adminReturnsTab').hidden = tab.dataset.adminTab !== 'returns'; document.getElementById('adminFinanceTab').hidden = tab.dataset.adminTab !== 'finance'; if (tab.dataset.adminTab === 'finance') renderFinanceDashboard(); }));
+  document.querySelectorAll('[data-admin-tab]').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('[data-admin-tab]').forEach(item => item.classList.remove('active')); tab.classList.add('active'); document.getElementById('adminCatalogTab').hidden = tab.dataset.adminTab !== 'catalog'; document.getElementById('adminRequestsTab').hidden = tab.dataset.adminTab !== 'requests'; document.getElementById('adminRepairTab').hidden = tab.dataset.adminTab !== 'repair'; document.getElementById('adminInventoryTab').hidden = tab.dataset.adminTab !== 'inventory'; document.getElementById('adminBillingTab').hidden = tab.dataset.adminTab !== 'billing'; document.getElementById('adminReturnsTab').hidden = tab.dataset.adminTab !== 'returns'; document.getElementById('adminFinanceTab').hidden = tab.dataset.adminTab !== 'finance'; if (tab.dataset.adminTab === 'finance') renderFinanceDashboard(); if (tab.dataset.adminTab === 'requests') renderAdminSubmissions(); }));
   const billingForm = document.getElementById('billingForm');
   const billingItemsList = document.getElementById('billingItemsList');
   const billingEditIndex = { value: '' };

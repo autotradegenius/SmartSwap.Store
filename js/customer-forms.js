@@ -26,6 +26,7 @@ function setupCustomerForm(formId, type){
   const form = document.getElementById(formId);
   if(!form) return;
   const confirmButton = form.querySelector('[data-auth-required]');
+  const directSubmit = form.hasAttribute('data-auth-required') && !confirmButton;
 
   async function saveCustomerRequest(){
     if(!window.swapioAuth?.requireUser()) return;
@@ -54,6 +55,14 @@ function setupCustomerForm(formId, type){
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
+    if(directSubmit){
+      saveCustomerRequest().catch(error => {
+        const message = form.querySelector('.form-msg');
+        message.textContent = error.message || 'The request could not be saved. Please try again.';
+        message.className = 'form-msg err';
+      });
+      return;
+    }
     const data = Object.fromEntries(new FormData(form).entries());
     const message = form.querySelector('.form-msg');
     const modelName = data.model.trim().toLowerCase();
@@ -78,4 +87,5 @@ document.addEventListener('DOMContentLoaded', () => {
   setupPhotoInput('repairPhotos', 'repairPhotoPreview');
   setupCustomerForm('sellRequestForm', 'sell');
   setupCustomerForm('repairRequestForm', 'repair');
+  setupCustomerForm('repairModelRequestForm', 'repair');
 });

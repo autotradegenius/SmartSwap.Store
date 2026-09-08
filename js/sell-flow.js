@@ -261,6 +261,34 @@
         </a>
       `;
     }).join('');
+    setupModelSearch(filteredModels, grid);
+  }
+
+  function setupModelSearch(models, grid) {
+    const input = document.querySelector('.sell-search-box input');
+    if (!input || input.dataset.searchReady === 'true') return;
+    const searchBox = input.closest('.sell-search-box');
+    const results = document.createElement('div');
+    results.className = 'model-search-results';
+    results.hidden = true;
+    searchBox.appendChild(results);
+    input.dataset.searchReady = 'true';
+
+    function closeResults() { results.hidden = true; results.innerHTML = ''; }
+    function showResults() {
+      const query = input.value.trim().toLowerCase();
+      if (!query) { closeResults(); return; }
+      const matches = models.filter(model => String(model.name || '').toLowerCase().includes(query));
+      results.innerHTML = matches.length ? matches.map(model => {
+        const href = `variant.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}${new URLSearchParams(window.location.search).get('damage') === '1' ? '&damage=1' : ''}`;
+        return `<a href="${href}" class="model-search-result"><span>${model.name}</span><small>${model.spec || ''}</small></a>`;
+      }).join('') : '<div class="model-search-empty">No models found for this brand.</div>';
+      results.hidden = false;
+    }
+    input.addEventListener('input', showResults);
+    input.addEventListener('focus', showResults);
+    input.addEventListener('keydown', event => { if (event.key === 'Escape') { closeResults(); input.blur(); } });
+    document.addEventListener('click', event => { if (!searchBox.contains(event.target)) closeResults(); });
   }
 
   function syncSummaryCard() {

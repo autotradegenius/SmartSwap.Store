@@ -356,6 +356,35 @@ function renderBrandCatalog(brandName, containerId){
       </a>
     `;
   }).join('');
+  setupBrandModelSearch(phones, container);
+}
+
+function setupBrandModelSearch(phones, container){
+  const input = document.querySelector('.sell-search-box input');
+  if(!input || input.dataset.searchReady === 'true') return;
+  const searchBox = input.closest('.sell-search-box');
+  const results = document.createElement('div');
+  results.className = 'model-search-results';
+  results.hidden = true;
+  searchBox.appendChild(results);
+  input.dataset.searchReady = 'true';
+
+  const closeResults = () => { results.hidden = true; results.innerHTML = ''; };
+  const showResults = () => {
+    const query = input.value.trim().toLowerCase();
+    if(!query){ closeResults(); return; }
+    const matches = phones.filter(phone => String(phone.name || '').toLowerCase().includes(query));
+    results.innerHTML = matches.length ? matches.map(phone => {
+      const modelSlug = phone.id || phone.name.toLowerCase().replace(/\s+/g, '-');
+      const brand = normalizeBrandName(phone.brand || '');
+      return `<a href="../sell-flow/variant.html?model=${encodeURIComponent(modelSlug)}&brand=${encodeURIComponent(brand)}" class="model-search-result"><span>${phone.name}</span><small>${phone.spec || ''}</small></a>`;
+    }).join('') : '<div class="model-search-empty">No models found for this brand.</div>';
+    results.hidden = false;
+  };
+  input.addEventListener('input', showResults);
+  input.addEventListener('focus', showResults);
+  input.addEventListener('keydown', event => { if(event.key === 'Escape'){ closeResults(); input.blur(); } });
+  document.addEventListener('click', event => { if(!searchBox.contains(event.target)) closeResults(); });
 }
 
 function initBrandCatalog(){
