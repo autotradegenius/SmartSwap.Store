@@ -993,7 +993,7 @@ async function renderAdminSubmissions(){
   }
 }
 
-const adminCatalogViews = { buy: null, sell: null };
+const adminCatalogViews = { buy: null, sell: null, buyOpen: true, sellOpen: true };
 
 function catalogBrandLabel(model){
   if (/^poco\b/i.test(String(model.name || '').trim())) return 'Poco';
@@ -1152,6 +1152,10 @@ function renderCatalogModels(list, models, type, view){
 function renderAdminSellModels(){
   const list = document.getElementById('adminSellModels');
   if(!list) return;
+  if(!adminCatalogViews.sellOpen){
+    list.innerHTML = '';
+    return;
+  }
   const models = uniqueModels(readSellModels());
   if(!models.length){
     list.innerHTML = '<p class="admin-empty">No phones in sell catalog yet. Use "Add sell phone" above.</p>';
@@ -1168,6 +1172,10 @@ function renderAdminSellModels(){
 function renderAdminBuyModels(){
   const list = document.getElementById('adminBuyModels');
   if(!list) return;
+  if(!adminCatalogViews.buyOpen){
+    list.innerHTML = '';
+    return;
+  }
   const buyModels = readBuyModels().map(model => ({...model, custom:false}));
   const customProducts = readProducts().map((product, index) => ({
     ...product,
@@ -1469,8 +1477,6 @@ function setupAdmin(){
     data.price = storageVariants[0].price;
     delete data.storageVariant;
     
-    const editIndex = data.editIndex;
-    delete data.editIndex;
     const readImage = file => file ? new Promise(resolve => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -1494,8 +1500,38 @@ function setupAdmin(){
       };
       reader.readAsDataURL(file);
     }) : Promise.resolve('');
-    const frontImage = await readImage(form.elements.frontPhoto.files[0]);
-    const backImage = await readImage(form.elements.backPhoto.files[0]);
+
+    async function uploadImageDataUrl(file, side) {
+      if (!file) return '';
+      const dataUrl = await readImage(file);
+      if (!dataUrl) return '';
+      const payload = {
+        brand: data.brand || 'other-brand',
+        model: data.name || 'product',
+        type: side,
+        imageDataUrl: dataUrl
+      };
+      try {
+        const response = await fetch('/api/product-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          throw new Error('Image upload failed');
+        }
+        const result = await response.json();
+        return result.url || '';
+      } catch (error) {
+        window.alert('Image upload failed. Product image was not saved.');
+        return '';
+      }
+    }
+
+    const frontFile = form.elements.frontPhoto.files[0];
+    const backFile = form.elements.backPhoto.files[0];
+    const frontImage = await uploadImageDataUrl(frontFile, 'front');
+    const backImage = await uploadImageDataUrl(backFile, 'back');
     const products = readProducts();
     if(editIndex.startsWith('custom:')){
       const productIndex = Number(editIndex.slice(7));
@@ -1736,23 +1772,23 @@ function setupAdmin(){
     productForm.scrollIntoView({behavior:'smooth', block:'center'});
   });
   document.getElementById('viewBuyListBtn').addEventListener('click', () => {
-    if(adminCatalogViews.buy === '__all__' || adminCatalogViews.buy) {
-      adminCatalogViews.buy = null;
-      renderAdminBuyModels();
-    } else {
-      adminCatalogViews.buy = '__all__';
+    adminCatalogViews.buy = null;
+    adminCatalogViews.buyOpen = !adminCatalogViews.buyOpen;
+    if(adminCatalogViews.buyOpen) {
       renderAdminBuyModels();
       document.getElementById('adminBuyModels').scrollIntoView({behavior:'smooth', block:'start'});
+    } else {
+      document.getElementById('adminBuyModels').innerHTML = '';
     }
   });
   document.getElementById('viewSellListBtn').addEventListener('click', () => {
-    if(adminCatalogViews.sell === '__all__' || adminCatalogViews.sell) {
-      adminCatalogViews.sell = null;
-      renderAdminSellModels();
-    } else {
-      adminCatalogViews.sell = '__all__';
+    adminCatalogViews.sell = null;
+    adminCatalogViews.sellOpen = !adminCatalogViews.sellOpen;
+    if(adminCatalogViews.sellOpen) {
       renderAdminSellModels();
       document.getElementById('adminSellModels').scrollIntoView({behavior:'smooth', block:'start'});
+    } else {
+      document.getElementById('adminSellModels').innerHTML = '';
     }
   });
   document.getElementById('adminBuyModels').addEventListener('click', event => {
@@ -1760,8 +1796,19 @@ function setupAdmin(){
     const brand = event.target.closest('[data-catalog-brand]');
     const back = event.target.closest('[data-catalog-back="buy"]');
     if(searchResult){ adminCatalogViews.buy = searchResult.dataset.catalogBrand; renderAdminBuyModels(); return; }
-    if(brand){ adminCatalogViews.buy = brand.dataset.catalogBrand; renderAdminBuyModels(); }
-    if(back){ adminCatalogViews.buy = null; renderAdminBuyModels(); }
+    if(brand){
+      if(adminCatalogViews.buy === brand.dataset.catalogBrand){
+        adminCatalogViews.buy = null;
+        adminCatalogViews.buyOpen = false;
+        document.getElementById('adminBuyModels').innerHTML = '';
+      } else {
+        adminCatalogViews.buy = brand.dataset.catalogBrand;
+        adminCatalogViews.buyOpen = true;
+        renderAdminBuyModels();
+      }
+      return;
+    }
+    if(back){ adminCatalogViews.buy = null; adminCatalogViews.buyOpen = true; renderAdminBuyModels(); }
   });
   document.getElementById('adminBuyModels').addEventListener('input', event => {
     const input = event.target.closest('[data-catalog-search]');
@@ -1790,8 +1837,19 @@ function setupAdmin(){
     const brand = event.target.closest('[data-catalog-brand]');
     const back = event.target.closest('[data-catalog-back="sell"]');
     if(searchResult){ adminCatalogViews.sell = searchResult.dataset.catalogBrand; renderAdminSellModels(); return; }
-    if(brand){ adminCatalogViews.sell = brand.dataset.catalogBrand; renderAdminSellModels(); }
-    if(back){ adminCatalogViews.sell = null; renderAdminSellModels(); }
+    if(brand){
+      if(adminCatalogViews.sell === brand.dataset.catalogBrand){
+        adminCatalogViews.sell = null;
+        adminCatalogViews.sellOpen = false;
+        document.getElementById('adminSellModels').innerHTML = '';
+      } else {
+        adminCatalogViews.sell = brand.dataset.catalogBrand;
+        adminCatalogViews.sellOpen = true;
+        renderAdminSellModels();
+      }
+      return;
+    }
+    if(back){ adminCatalogViews.sell = null; adminCatalogViews.sellOpen = true; renderAdminSellModels(); }
   });
   document.getElementById('adminSellModels').addEventListener('input', event => {
     const input = event.target.closest('[data-catalog-search]');
