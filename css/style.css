@@ -580,12 +580,12 @@ header{
 
 /* ---------- product cards ---------- */
 .phone-icon{width:100%;height:120px;display:flex;align-items:center;justify-content:center;
-  background:var(--paper-dim);border-radius:12px;margin-bottom:18px;overflow:hidden;}
+  background:var(--paper-dim);border-radius:12px;margin-bottom:18px;overflow:hidden;aspect-ratio:4/3;}
 .phone-icon svg{width:52px;height:52px;color:var(--ink);}
-.phone-icon img{width:100%;height:100%;object-fit:contain;object-position:center;padding:10px;border-radius:12px;background:#fff;}
-.phone-image-stack{height:120px;position:relative;background:var(--paper-dim);border-radius:12px;margin-bottom:18px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-.phone-image-stack .phone-back{position:absolute;width:80%;height:80%;left:8%;top:8%;object-fit:contain;object-position:center;padding:8px;border-radius:10px;opacity:.78;transform:translate(16px,8px);background:#fff;box-sizing:border-box;}
-.phone-image-stack .phone-front{position:relative;width:100%;height:100%;object-fit:contain;object-position:center;box-sizing:border-box;padding:10px;border-radius:12px;background:#fff;z-index:1;}
+.phone-icon img{width:100%;height:100%;object-fit:cover;object-position:center;padding:10px;border-radius:12px;background:#fff;}
+.phone-image-stack{height:120px;position:relative;background:var(--paper-dim);border-radius:12px;margin-bottom:18px;display:flex;align-items:center;justify-content:center;overflow:hidden;aspect-ratio:4/3;}
+.phone-image-stack .phone-back{position:absolute;width:80%;height:80%;left:8%;top:8%;object-fit:cover;object-position:center;padding:8px;border-radius:10px;opacity:.78;transform:translate(16px,8px);background:#fff;box-sizing:border-box;}
+.phone-image-stack .phone-front{position:relative;width:100%;height:100%;object-fit:cover;object-position:center;box-sizing:border-box;padding:10px;border-radius:12px;background:#fff;z-index:1;}
 .phone-image-stack svg{width:52px;height:52px;color:var(--ink);}
 
 .product-card{background:#fff;border:1px solid var(--line-light);border-radius:16px;padding:22px;transition:all .2s ease;}
