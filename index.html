@@ -235,7 +235,7 @@
       was: '',
       grade: 'Superb',
       warranty: '30-day',
-      image: product.photos?.[0] || ''
+      image: product.frontImage || product.photos?.[0] || ''
     });
   });
   const homeSaleGrid = document.getElementById('homeFlashSaleGrid');

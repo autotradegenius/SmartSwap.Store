@@ -106,7 +106,7 @@ const adminBuyModels = catalogProducts.filter(product => product.visible !== fal
     was: '',
     grade: 'Superb',
     warranty: '30-day',
-    image: product.photos?.[0] || ''
+    image: product.frontImage || product.photos?.[0] || ''
   }));
 buyModels.push(...adminBuyModels);
 if (window.swapioData?.readCatalog) {
