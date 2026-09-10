@@ -89,18 +89,18 @@ const defaultSellModels = [
 function readSellModels(){
   const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
   const defaults = Array.isArray(window.DEFAULT_MODELS) && window.DEFAULT_MODELS.length ? window.DEFAULT_MODELS : defaultSellModels;
-  return defaults.map(model => ({...model, ...(overrides[model.id] || {})})).filter(model => !model.hidden);
+  const seeds = defaults.map(model => ({...model, domain:'sell'}));
+  const models = window.swapioData?.readCatalog ? window.swapioData.readCatalog('sell', seeds) : seeds;
+  const naturalNameOrder = new Intl.Collator(undefined, {numeric:true, sensitivity:'base'});
+  return models
+    .map(model => ({...model, ...(overrides[model.id] || {})}))
+    .sort((first, second) => naturalNameOrder.compare(String(first.name || ''), String(second.name || '')));
 }
 function saveSellModels(models){
   const uniqueSellModels = uniqueModels(models);
   localStorage.setItem('swapioSellModels', JSON.stringify(Object.fromEntries(uniqueSellModels.map(model => [model.id, model]))));
-  const catalog = readSellCatalog();
-  uniqueSellModels.forEach(model => {
-    const index = catalog.findIndex(existing => existing.id === model.id);
-    if (index >= 0) catalog[index] = {...catalog[index], ...model};
-    else catalog.push({...model});
-  });
-  saveSellCatalog(catalog);
+  if(window.swapioData?.saveCatalog) window.swapioData.saveCatalog('sell', uniqueSellModels);
+  else saveSellCatalog(uniqueSellModels);
 }
 const defaultBuyModels = [
   {id:'iphone-12',name:'iPhone 12',spec:'128GB · Apple',price:'32999',oldPrice:'52000',grade:'Superb',warranty:'30-day'},
@@ -118,12 +118,25 @@ function readBuyModels(){
   (Array.isArray(window.BUY_MASTER_MODELS) ? window.BUY_MASTER_MODELS : []).forEach(model => {
     if (!allModels.some(entry => entry.id === model.id)) allModels.push({...model});
   });
-  return allModels.map(model => ({...model, ...(overrides[model.id] || {})})).filter(model => !model.hidden);
+  const seeds = allModels.map(model => ({...model, domain:'buy'}));
+  const models = window.swapioData?.readCatalog ? window.swapioData.readCatalog('buy', seeds) : seeds;
+  const compareModelNames = (firstName, secondName) => {
+    const first = String(firstName || ''), second = String(secondName || '');
+    const firstNumber = first.match(/\d+/), secondNumber = second.match(/\d+/);
+    if(firstNumber && secondNumber && Number(firstNumber[0]) !== Number(secondNumber[0])) return Number(firstNumber[0]) - Number(secondNumber[0]);
+    if(firstNumber && !secondNumber) return -1;
+    if(!firstNumber && secondNumber) return 1;
+    return first.localeCompare(second, undefined, {numeric:true, sensitivity:'base'});
+  };
+  return models
+    .map(model => ({...model, ...(overrides[model.id] || {})}))
+    .sort((first, second) => String(first.brand || '').localeCompare(String(second.brand || ''), undefined, {sensitivity:'base'}) || compareModelNames(first.name, second.name));
 }
 function saveBuyModels(models){
   const uniqueBuyModels = uniqueModels(models);
   localStorage.setItem('swapioBuyModels', JSON.stringify(Object.fromEntries(uniqueBuyModels.map(model => [model.id, model]))));
-  if (window.swapioData?.saveBuyCatalog) window.swapioData.saveBuyCatalog(uniqueBuyModels).catch(error => console.warn('Buy catalog cloud sync failed.', error));
+  if (window.swapioData?.saveCatalog) window.swapioData.saveCatalog('buy', uniqueBuyModels).catch(error => console.warn('Buy catalog cloud sync failed.', error));
+  else if (window.swapioData?.saveBuyCatalog) window.swapioData.saveBuyCatalog(uniqueBuyModels).catch(error => console.warn('Buy catalog cloud sync failed.', error));
 }
 const inventoryKey = window.swapioData?.STORAGE_KEYS?.inventory || 'swapioInventory';
 const returnsKey = window.swapioData?.STORAGE_KEYS?.returns || 'swapioReturns';
@@ -140,16 +153,19 @@ function modelIdentity(value, brand) {
 }
 function hasDuplicateModel(models, model, ignoredId = '') {
   const identity = modelIdentity(model.name, model.brand);
-  return models.some(existing => existing.id !== ignoredId && modelIdentity(existing.name, existing.brand) === identity);
+  return models.some(existing => existing.id !== ignoredId && !existing.hidden && !existing.deleted && existing.enabled !== false && modelIdentity(existing.name, existing.brand) === identity);
 }
 function uniqueModels(models) {
-  const seen = new Set();
-  return models.filter(model => {
+  const unique = new Map();
+  models.forEach(model => {
     const identity = modelIdentity(model.name, model.brand);
-    if (seen.has(identity)) return false;
-    seen.add(identity);
-    return true;
+    const current = unique.get(identity);
+    if (!current) { unique.set(identity, model); return; }
+    const currentInactive = current.hidden === true || current.deleted === true || current.enabled === false;
+    const candidateInactive = model.hidden === true || model.deleted === true || model.enabled === false;
+    if ((currentInactive && !candidateInactive) || Number(model.updatedAt || 0) >= Number(current.updatedAt || 0)) unique.set(identity, model);
   });
+  return [...unique.values()];
 }
 function readSellCatalog(){
   return JSON.parse(localStorage.getItem(sellCatalogKey) || '[]');
@@ -179,35 +195,138 @@ function saveBills(items){
   localStorage.setItem(billsKey, JSON.stringify(items));
 }
 
+function isRepairServiceRecord(item){
+  return item.isService === true || (!item.brand && !item.model);
+}
 function readRepairCatalog(){
   if(window.swapioData?.readRepairCatalog) return window.swapioData.readRepairCatalog();
-  return JSON.parse(localStorage.getItem(repairCatalogKey) || '[]');
+    return JSON.parse(localStorage.getItem(repairCatalogKey) || '[]');
 }
 function saveRepairCatalog(items){
-  if(window.swapioData?.saveRepairCatalog) return window.swapioData.saveRepairCatalog(items);
-  localStorage.setItem(repairCatalogKey, JSON.stringify(items));
+  const serviceItems = items.filter(isRepairServiceRecord);
+  const priceItems = uniqueRepairPriceItems(items.filter(item => !isRepairServiceRecord(item)));
+  const records = [...serviceItems, ...priceItems];
+  if(window.swapioData?.saveRepairCatalog) return window.swapioData.saveRepairCatalog(records);
+  localStorage.setItem(repairCatalogKey, JSON.stringify(records));
+}
+function repairPriceIdentity(item){
+  return [item.brand, item.model, item.service].map(value => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '')).join(':');
+}
+function uniqueRepairPriceItems(items){
+  const unique = new Map();
+  items.forEach(item => {
+    const key = repairPriceIdentity(item);
+    const current = unique.get(key);
+    if(!current || Number(item.updatedAt || 0) >= Number(current.updatedAt || 0)) unique.set(key, item);
+  });
+  return [...unique.values()];
+}
+const defaultRepairServices = [
+  {id:'repair-service-screen-replacement', service:'Screen Replacement', isService:true, description:'Original-grade display and touch panel replacement.', price:1499, time:'45 min'},
+  {id:'repair-service-battery-replacement', service:'Battery Replacement', isService:true, description:'Restore full-day battery life with a certified cell.', price:999, time:'30 min'},
+  {id:'repair-service-camera-repair', service:'Camera Repair', isService:true, description:'Front or rear camera module diagnosis and replacement.', price:1199, time:'40 min'},
+  {id:'repair-service-charging-port-fix', service:'Charging Port Fix', isService:true, description:'Loose or unresponsive charging port repair.', price:799, time:'35 min'},
+  {id:'repair-service-water-damage-recovery', service:'Water Damage Recovery', isService:true, description:'Full diagnostic clean and component-level repair.', price:1999, time:'Same day'},
+  {id:'repair-service-software-performance', service:'Software & Performance', isService:true, description:'OS issues, slow performance, boot loops, and more.', price:499, time:'20 min'}
+];
+function readRepairServices(){
+  if(window.swapioData?.readCatalog) return window.swapioData.readCatalog('repair', defaultRepairServices).filter(item => isRepairServiceRecord(item) && !item.deleted);
+  return [...defaultRepairServices];
+}
+function saveRepairServices(items){
+  if(window.swapioData?.saveCatalog) return window.swapioData.saveCatalog('repair', [...readRepairCatalog().filter(item => !isRepairServiceRecord(item)), ...items]);
+    return saveRepairCatalog([...readRepairCatalog().filter(item => !isRepairServiceRecord(item)), ...items]);
+}
+function renderRepairServices(){
+  const list = document.getElementById('repairServiceList');
+  if(!list) return;
+  const items = readRepairServices();
+  list.innerHTML = `<table class="inventory-table"><thead><tr><th>Repair part</th><th>Description</th><th>Starting price</th><th>Time</th><th>Action</th></tr></thead><tbody>${items.map((item, index) => { const defaults = repairServiceDefaults(item.service); return `<tr><td>${item.service}</td><td>${item.description || defaults.description || '-'}</td><td>${formatCurrency(item.price || defaults.price)}</td><td>${repairTimeLabel(item.time, defaults.time) || '-'}</td><td><button class="btn btn-ghost" type="button" data-edit-repair-service="${index}">Edit</button><button class="btn btn-ghost" type="button" data-delete-repair-service="${index}">Delete</button></td></tr>`; }).join('')}</tbody></table>`;
+}
+function repairServiceDefaults(service){
+  const item = readRepairServices().find(entry => String(entry.service).toLowerCase() === String(service || '').toLowerCase());
+  const fallback = defaultRepairServices.find(entry => String(entry.service).toLowerCase() === String(service || '').toLowerCase());
+  return {...fallback, ...item};
+}
+function repairTimeLabel(value, fallback = ''){
+  const text = String(value || fallback || '').trim();
+  return /^\d+(?:\.\d+)?$/.test(text) ? `${text} min` : text;
 }
 function renderRepairCatalog(){
   const list = document.getElementById('repairCatalogList');
   if(!list) return;
-  const items = readRepairCatalog();
-  list.innerHTML = items.length ? `<table class="inventory-table"><thead><tr><th>Service</th><th>Brand</th><th>Model</th><th>Price</th><th>Time</th><th>Action</th></tr></thead><tbody>${items.map((item, index) => `<tr><td>${item.service}</td><td>${item.brand}</td><td>${item.model}</td><td>${formatCurrency(item.price)}</td><td>${item.time || '-'}</td><td><button class="btn btn-ghost" type="button" data-edit-repair="${index}">Edit</button><button class="btn btn-ghost" type="button" data-delete-repair="${index}">Delete</button></td></tr>`).join('')}</tbody></table>` : '<p class="admin-empty">No repair prices added yet.</p>';
+  const items = uniqueRepairPriceItems(readRepairCatalog().filter(item => !isRepairServiceRecord(item)));
+  list.innerHTML = items.length ? `<table class="inventory-table"><thead><tr><th>Service</th><th>Brand</th><th>Model</th><th>Description</th><th>Price</th><th>Time</th><th>Action</th></tr></thead><tbody>${items.map((item, index) => { const defaults = repairServiceDefaults(item.service); return `<tr><td>${item.service}</td><td>${item.brand}</td><td>${item.model}</td><td>${item.description || defaults.description || '-'}</td><td>${formatCurrency(item.price)}</td><td>${repairTimeLabel(item.time, defaults.time) || '-'}</td><td><button class="btn btn-ghost" type="button" data-edit-repair="${index}">Edit</button><button class="btn btn-ghost" type="button" data-delete-repair="${index}">Delete</button></td></tr>`; }).join('')}</tbody></table>` : '<p class="admin-empty">No repair prices added yet.</p>';
 }
 function setupRepairCatalogManagement(){
   const form = document.getElementById('repairCatalogForm');
   const list = document.getElementById('repairCatalogList');
+  const serviceForm = document.getElementById('repairServiceForm');
+  const serviceList = document.getElementById('repairServiceList');
   if(!form || !list) return;
-  const reset = () => { form.reset(); form.elements.repairIndex.value = ''; form.querySelector('button[type="submit"]').textContent = 'Add repair price'; document.getElementById('cancelRepairEdit').hidden = true; };
-  form.addEventListener('submit', event => { event.preventDefault(); const data = Object.fromEntries(new FormData(form).entries()); const index = data.repairIndex; delete data.repairIndex; const items = readRepairCatalog(); if(index === '') items.unshift(data); else items[Number(index)] = data; saveRepairCatalog(items); reset(); renderRepairCatalog(); });
+  const brandSelect = form.elements.brand;
+  const modelSelect = form.elements.model;
+  const models = [];
+  [...(window.DEFAULT_MODELS || []), ...readSellCatalog(), ...readPhoneCatalog()].forEach(model => {
+    if (!model?.brand || !model?.name) return;
+    const key = `${String(model.brand).toLowerCase()}:${String(model.name).toLowerCase()}`;
+    if (!models.some(existing => existing.key === key)) models.push({ key, brand: String(model.brand).trim(), name: String(model.name).trim() });
+  });
+  const brands = [...new Map(models.map(model => [model.brand.toLowerCase(), model.brand])).values()].sort((a, b) => a.localeCompare(b));
+  brandSelect.innerHTML = '<option value="">Select brand first</option>' + brands.map(brand => `<option value="${brand}">${brand}</option>`).join('');
+  const updateModels = selectedModel => {
+    const matches = models.filter(model => model.brand.toLowerCase() === brandSelect.value.toLowerCase());
+    modelSelect.innerHTML = '<option value="">Select model</option>' + matches.map(model => `<option value="${model.name}" ${model.name === selectedModel ? 'selected' : ''}>${model.name}</option>`).join('');
+    modelSelect.disabled = !brandSelect.value;
+  };
+  brandSelect.addEventListener('change', () => updateModels());
+  const reset = () => { form.reset(); form.elements.repairIndex.value = ''; updateModels(); form.querySelector('button[type="submit"]').textContent = 'Add repair price'; document.getElementById('cancelRepairEdit').hidden = true; };
+  form.addEventListener('submit', event => { event.preventDefault(); const data = Object.fromEntries(new FormData(form).entries()); data.updatedAt = Date.now(); data.time = repairTimeLabel(data.time); const index = data.repairIndex; delete data.repairIndex; const existing = readRepairCatalog(); const items = uniqueRepairPriceItems(existing.filter(item => !isRepairServiceRecord(item))); const duplicateIndex = items.findIndex((item, itemIndex) => (index === '' || itemIndex !== Number(index)) && repairPriceIdentity(item) === repairPriceIdentity(data)); if(duplicateIndex >= 0){ window.alert('This repair part already exists for this brand and model. Edit the existing row instead.'); return; } if(index === '') items.unshift(data); else items[Number(index)] = {...items[Number(index)], ...data}; Promise.resolve(saveRepairCatalog([...existing.filter(isRepairServiceRecord), ...items])).catch(error => console.warn('Repair catalog cloud sync failed.', error)); reset(); renderRepairCatalog(); });
   document.getElementById('cancelRepairEdit').addEventListener('click', reset);
   list.addEventListener('click', event => {
     const edit = event.target.closest('[data-edit-repair]');
     const remove = event.target.closest('[data-delete-repair]');
-    const items = readRepairCatalog();
-    if(edit){ const index = Number(edit.dataset.editRepair); const item = items[index]; Object.keys(item).forEach(key => { if(form.elements[key]) form.elements[key].value = item[key]; }); form.elements.repairIndex.value = index; form.querySelector('button[type="submit"]').textContent = 'Update repair price'; document.getElementById('cancelRepairEdit').hidden = false; form.scrollIntoView({behavior:'smooth', block:'center'}); }
-    if(remove){ const index = Number(remove.dataset.deleteRepair); if(!window.confirm(`Delete ${items[index].service} price for ${items[index].model}?`)) return; items.splice(index, 1); saveRepairCatalog(items); renderRepairCatalog(); }
+    const items = uniqueRepairPriceItems(readRepairCatalog().filter(item => !isRepairServiceRecord(item)));
+    if(edit){ const index = Number(edit.dataset.editRepair); const item = items[index]; brandSelect.value = item.brand || ''; updateModels(item.model); modelSelect.value = item.model || ''; Object.keys(item).forEach(key => { if(form.elements[key] && key !== 'brand' && key !== 'model') form.elements[key].value = item[key]; }); form.elements.repairIndex.value = index; form.querySelector('button[type="submit"]').textContent = 'Update repair price'; document.getElementById('cancelRepairEdit').hidden = false; form.scrollIntoView({behavior:'smooth', block:'center'}); }
+    if(remove){ const index = Number(remove.dataset.deleteRepair); if(!window.confirm(`Delete ${items[index].service} price for ${items[index].model}?`)) return; items.splice(index, 1); Promise.resolve(saveRepairCatalog([...readRepairCatalog().filter(isRepairServiceRecord), ...items])).catch(error => console.warn('Repair catalog cloud sync failed.', error)); renderRepairCatalog(); }
   });
+  if(serviceForm && serviceList){
+    const resetService = () => { serviceForm.reset(); serviceForm.elements.serviceIndex.value = ''; serviceForm.querySelector('button[type="submit"]').textContent = 'Add repair part'; document.getElementById('cancelRepairServiceEdit').hidden = true; };
+    serviceForm.addEventListener('submit', event => { event.preventDefault(); const data = Object.fromEntries(new FormData(serviceForm).entries()); data.updatedAt = Date.now(); const index = data.serviceIndex; delete data.serviceIndex; const items = readRepairServices(); data.id = index === '' ? `repair-service-${Date.now()}` : items[Number(index)].id; data.price = Number(data.price); data.isService = true; if(index === '') items.unshift(data); else items[Number(index)] = data; Promise.resolve(saveRepairServices(items)).catch(error => console.warn('Repair service cloud sync failed.', error)); resetService(); renderRepairServices(); });
+    document.getElementById('cancelRepairServiceEdit').addEventListener('click', resetService);
+    serviceList.addEventListener('click', event => { const edit = event.target.closest('[data-edit-repair-service]'); const remove = event.target.closest('[data-delete-repair-service]'); const items = readRepairServices(); if(edit){ const item = items[Number(edit.dataset.editRepairService)]; Object.keys(item).forEach(key => { if(serviceForm.elements[key]) serviceForm.elements[key].value = item[key]; }); serviceForm.elements.serviceIndex.value = edit.dataset.editRepairService; serviceForm.querySelector('button[type="submit"]').textContent = 'Update repair part'; document.getElementById('cancelRepairServiceEdit').hidden = false; serviceForm.scrollIntoView({behavior:'smooth', block:'center'}); } if(remove){ const index = Number(remove.dataset.deleteRepairService); if(!window.confirm(`Delete ${items[index].service}?`)) return; items[index].deleted = true; Promise.resolve(saveRepairServices(items)).catch(error => console.warn('Repair service cloud sync failed.', error)); renderRepairServices(); } });
+  }
   renderRepairCatalog();
+  renderRepairServices();
+}
+
+const recyclePriceRecordId = 'recycle-global-price-per-gb';
+const defaultRecyclePricePerGb = 5;
+const recycleMemoryPrices = {'32 GB':299, '64 GB':399, '128 GB':599, '256 GB':899, '512 GB':1299};
+function readRecycleCatalog(){
+  if(window.swapioData?.readCatalog) return window.swapioData.readCatalog('recycle', [{id: recyclePriceRecordId, prices: recycleMemoryPrices, pricePerGb: defaultRecyclePricePerGb, type: 'global'}]);
+  return JSON.parse(localStorage.getItem('swapioRecycleCatalog') || '[]');
+}
+function saveRecycleCatalog(items){
+  if(window.swapioData?.saveCatalog) return window.swapioData.saveCatalog('recycle', items);
+  localStorage.setItem('swapioRecycleCatalog', JSON.stringify(items));
+}
+function renderRecycleCatalog(){
+  const form = document.getElementById('recycleCatalogForm');
+  if(!form) return;
+  const priceRecord = readRecycleCatalog().find(item => item.id === recyclePriceRecordId || item.type === 'global');
+  const prices = priceRecord?.prices || Object.fromEntries(Object.entries(recycleMemoryPrices).map(([memory, price]) => [memory, Math.round(Number(priceRecord?.pricePerGb ?? defaultRecyclePricePerGb) * Number.parseFloat(memory))]));
+  form.elements.price32.value = prices['32 GB'];
+  form.elements.price64.value = prices['64 GB'];
+  form.elements.price128.value = prices['128 GB'];
+  form.elements.price256.value = prices['256 GB'];
+  form.elements.price512.value = prices['512 GB'];
+}
+function setupRecycleCatalogManagement(){
+  const form = document.getElementById('recycleCatalogForm');
+  if(!form) return;
+  form.addEventListener('submit', event => { event.preventDefault(); const prices = {'32 GB':Number(form.elements.price32.value), '64 GB':Number(form.elements.price64.value), '128 GB':Number(form.elements.price128.value), '256 GB':Number(form.elements.price256.value), '512 GB':Number(form.elements.price512.value)}; const items = readRecycleCatalog().filter(item => item.id !== recyclePriceRecordId && item.type !== 'global'); items.unshift({id: recyclePriceRecordId, type: 'global', prices, domain: 'recycle', updatedAt: Date.now()}); Promise.resolve(saveRecycleCatalog(items)).catch(error => console.warn('Recycle pricing cloud sync failed.', error)); renderRecycleCatalog(); });
+  renderRecycleCatalog();
 }
 
 // ========== BRAND-AWARE PHONE CATALOG (still used to feed brand pages / Other Brands on the public site) ==========
@@ -593,7 +712,7 @@ function generateBillHtml(bill, saveState = {}){
       <div class="shop-wrap">
         <div>
           <div class="shop-name">SmartSwap.Store</div>
-          <div class="shop-line">Shop No. 12, Karol Bagh, New Delhi — 110005</div>
+          <div class="shop-line">Shop No. 3, Duggal Colony Gate No. 1, Near Burger King, Deoli Main Road, New Delhi — 110080</div>
           <div class="shop-line">GSTIN: 07ABCD1234F1Z5  |  Phone: +91 98111 22334  |  Email: hello@smartswap.store</div>
         </div>
         <div class="invoice-box">
@@ -767,8 +886,9 @@ function renderAdminProducts(){
     </article>`).join('') : '<p class="admin-empty">No admin products added yet.</p>';
 }
 
-let adminRequestType = 'buy';
+let adminRequestType = 'sell';
 let adminRequestStatus = 'all';
+let adminRequestDate = 'all';
 let adminSubmissionsCache = [];
 
 function submissionType(item){
@@ -778,6 +898,61 @@ function submissionType(item){
 
 function submissionStatus(item){
   return String(item.status || 'new').toLowerCase().replace(/\s+/g, '-');
+}
+
+function submissionRequestNumber(item){
+  if (item.requestNumber) return item.requestNumber;
+  const prefix = submissionType(item) === 'buy' ? 'BUY' : submissionType(item).toUpperCase();
+  return `${prefix}-${String(item.id || 'PENDING').slice(-4).toUpperCase()}`;
+}
+
+function submissionDisplayValue(value){
+  if (value === null || value === undefined || value === '') return '-';
+  return typeof value === 'object' ? JSON.stringify(value) : String(value);
+}
+
+function submissionDateTime(value){
+  const date = new Date(Number(value) || value);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function submissionDateKey(value){
+  const date = new Date(Number(value) || value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function adminDateKey(offset = 0){
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function requestAnswerRows(title, labels, answers, yesMeaning, noMeaning, problemWhen){
+  if (!Array.isArray(answers) || !answers.length) return '';
+  return `<section class="request-answer-section"><h4>${title}</h4><div class="request-answer-list">${labels.map((label, index) => {
+    const answer = String(answers[index] || 'Not answered');
+    const isProblem = problemWhen(answer, index);
+    const meaning = answer === 'Yes' ? yesMeaning : answer === 'No' ? noMeaning : answer;
+    return `<div class="request-answer-row ${isProblem ? 'is-problem' : 'is-ok'}"><span>${label}</span><strong>${meaning}</strong></div>`;
+  }).join('')}</div></section>`;
+}
+
+function requestDetailMarkup(item){
+  const problemLabels = ['Front Camera', 'Back Camera', 'Volume Button', 'Finger Touch', 'WiFi', 'Battery', 'Speaker', 'Power Button'];
+  const screenBodyLabels = ['Broken / scratched screen', 'Dead spot / visible line / discoloration', 'Scratch / dent on body', 'Panel missing / broken'];
+  const conditionLabels = ['Calls', 'Touch screen', 'Original screen'];
+  const accessoryLabels = ['Original charger', 'Original box with same IMEI', 'Original bill with IMEI'];
+  const excluded = ['id', 'photos', 'problemAnswers', 'conditionAnswers', 'accessoryAnswers', 'createdAt'];
+  const fields = Object.entries(item).filter(([key, value]) => !excluded.includes(key) && value !== '').map(([key, value]) => `<div class="request-detail-field"><strong>${key.replace(/([A-Z])/g, ' $1')}</strong><span>${submissionDisplayValue(value)}</span></div>`).join('');
+  const screenBodySection = Array.isArray(item.screenBodyAnswers) && item.screenBodyAnswers.length
+    ? requestAnswerRows('Screen / body condition', screenBodyLabels, item.screenBodyAnswers, 'Damage found', 'No damage', answer => answer === 'Yes')
+    : '<section class="request-answer-section"><h4>Screen / body condition</h4><div class="request-not-collected">Not collected in this request.</div></section>';
+  const usesWorkingStatus = item.problemAnswerMode === 'working-status-v1';
+  const functionalYesMeaning = usesWorkingStatus ? 'Working' : 'Not working';
+  const functionalNoMeaning = usesWorkingStatus ? 'Not working' : 'Working';
+  const functionalProblemValue = usesWorkingStatus ? 'No' : 'Yes';
+  return `<div class="request-detail-form"><div class="request-detail-field"><strong>Created time</strong><span>${submissionDateTime(item.createdAt)}</span></div>${fields}</div>${screenBodySection}${requestAnswerRows('Functional / physical problems', problemLabels, item.problemAnswers, functionalYesMeaning, functionalNoMeaning, answer => answer === functionalProblemValue)}${requestAnswerRows('Device condition', conditionLabels, item.conditionAnswers, 'Working / original', 'Problem / changed', answer => answer === 'No')}${requestAnswerRows('Accessories', accessoryLabels, item.accessoryAnswers, 'Available', 'Not available', answer => answer === 'No')}`;
 }
 
 function renderAdminSubmissionTabs(submissions){
@@ -795,14 +970,23 @@ async function renderAdminSubmissions(){
   const list = document.getElementById('adminSubmissions');
   try {
     adminSubmissionsCache = (await readSubmissions()) || [];
+    const dateInput = document.getElementById('requestDateInput');
+    const dateStrip = document.getElementById('requestDateStrip');
+    const recentDates = Array.from({length: 8}, (_, index) => adminDateKey(-index));
+    if (dateStrip) dateStrip.innerHTML = `${recentDates.map((date, index) => `<button type="button" class="request-date-button ${adminRequestDate === date ? 'active' : ''}" data-request-date="${date}">${index === 0 ? 'Today' : date.slice(-2)}</button>`).join('')}<button type="button" class="request-date-button ${adminRequestDate === 'all' ? 'active' : ''}" data-request-date="all">All</button>`;
+    if (dateInput) {
+      dateInput.value = recentDates.includes(adminRequestDate) || adminRequestDate === 'all' ? '' : adminRequestDate;
+    }
     renderAdminSubmissionTabs(adminSubmissionsCache);
-    const filtered = adminSubmissionsCache.filter(item => submissionType(item) === adminRequestType && (adminRequestStatus === 'all' || submissionStatus(item) === adminRequestStatus));
+    const selectedDate = adminRequestDate === 'today' ? adminDateKey() : adminRequestDate === 'yesterday' ? adminDateKey(-1) : adminRequestDate;
+    const filtered = adminSubmissionsCache.filter(item => submissionType(item) === adminRequestType && (adminRequestStatus === 'all' || submissionStatus(item) === adminRequestStatus) && (selectedDate === 'all' || submissionDateKey(item.createdAt) === selectedDate));
     const summary = document.getElementById('requestSummary');
     if(summary) summary.textContent = `${adminRequestType.charAt(0).toUpperCase() + adminRequestType.slice(1)} queue · Total: ${filtered.length} · New: ${filtered.filter(item => submissionStatus(item) === 'new').length} · In progress: ${filtered.filter(item => submissionStatus(item) === 'in-progress').length} · Completed: ${filtered.filter(item => submissionStatus(item) === 'completed').length}`;
     list.innerHTML = filtered.length ? filtered.map(item => {
-      const details = Object.entries(item).filter(([key, value]) => !['type', 'name', 'phone', 'customerPhone', 'email', 'createdAt', 'photos', 'status'].includes(key) && value !== '').map(([key, value]) => `<span><strong>${key.replace(/([A-Z])/g, ' $1')}</strong>${typeof value === 'object' ? JSON.stringify(value) : value}</span>`).join('');
+      const requestNumber = submissionRequestNumber(item);
+      const details = Object.entries(item).filter(([key, value]) => !['type', 'name', 'phone', 'customerPhone', 'email', 'createdAt', 'photos', 'status', 'requestNumber', 'id'].includes(key) && value !== '').map(([key, value]) => `<span><strong>${key.replace(/([A-Z])/g, ' $1')}</strong>${typeof value === 'object' ? JSON.stringify(value) : value}</span>`).join('');
       const status = submissionStatus(item);
-      return `<article class="submission-item"><div class="submission-main"><div class="submission-heading"><span class="pill pill-coral">${submissionType(item)}</span><span class="submission-status">${status.replace('-', ' ')}</span></div><h4>${item.name || 'Customer'}</h4><p>${item.customerPhone || item.phone || item.email || 'No contact'} · ${item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}</p><div class="submission-details">${details || '<span>No additional details</span>'}</div></div>${item.photos?.length ? `<div class="admin-photos">${item.photos.map(photo => `<img src="${photo}" alt="Customer upload">`).join('')}</div>` : ''}</article>`;
+      return `<article class="submission-item request-row" data-request-id="${item.id || ''}"><div class="request-row-cell request-number-cell"><strong>${requestNumber}</strong><small>Request no.</small></div><div class="request-row-cell"><strong>${submissionType(item)}</strong><small>Category</small></div><div class="request-row-cell"><strong>${item.name || 'Customer'}</strong><small>Customer</small></div><div class="request-row-cell"><strong>${item.customerPhone || item.phone || item.email || 'No contact'}</strong><small>Mobile</small></div><div class="request-row-cell request-time-cell"><strong>${item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', {dateStyle:'short', timeStyle:'short'}) : 'Unknown'}</strong><small>Created</small></div><small class="request-row-hint">Tap to view full request</small></article>`;
     }).join('') : '<p class="admin-empty">No requests in this queue.</p>';
   } catch (error) {
     list.innerHTML = `<p class="admin-empty">Could not load customer requests. ${error.message || 'Check Firebase permissions.'}</p>`;
@@ -830,6 +1014,86 @@ function catalogVariantSummary(model){
   return model.spec || 'No storage variant added';
 }
 
+function catalogModelSearchResults(type, query, scope, view = null){
+  const models = type === 'buy' ? getCatalogBuyModels() : getCatalogSellModels();
+  const needle = String(query || '').trim().toLowerCase();
+  if(!needle) return [];
+  return models.filter(model => {
+    const brand = catalogBrandLabel(model).toLowerCase();
+    const selected = String(view || '').toLowerCase();
+    if(scope === 'brand' && selected && brand !== selected) return false;
+    const name = String(model.name || '').toLowerCase();
+    const spec = String(model.spec || '').toLowerCase();
+    const text = `${brand} ${name} ${spec}`;
+    return text.includes(needle);
+  }).slice(0, 12);
+}
+
+function getCatalogBuyModels(){
+  const buyModels = readBuyModels().map(model => ({...model, custom:false}));
+  const customProducts = readProducts().map((product, index) => ({
+    ...product,
+    customIndex: index,
+    custom: true,
+    image: product.frontImage || product.photos?.[0] || '',
+    spec: product.details || `${product.brand} · Added phone`,
+    price: product.price,
+    grade: product.grade || 'Superb',
+    warranty: product.warranty || '30-day'
+  }));
+  return [...buyModels, ...customProducts].filter((model, index, all) => all.findIndex(candidate => modelIdentity(candidate.name, catalogModelBrand(candidate)) === modelIdentity(model.name, catalogModelBrand(model))) === index);
+}
+
+function getCatalogSellModels(){
+  return uniqueModels(readSellModels());
+}
+
+function getCatalogBuyModelsForSearch(){
+  const buyModels = readBuyModels().map(model => ({...model, custom:false}));
+  const customProducts = readProducts().map((product, index) => ({
+    ...product,
+    customIndex: index,
+    custom: true,
+    image: product.frontImage || product.photos?.[0] || '',
+    spec: product.details || `${product.brand} · Added phone`,
+    price: product.price,
+    grade: product.grade || 'Superb',
+    warranty: product.warranty || '30-day'
+  }));
+  return [...buyModels, ...customProducts].filter((model, index, all) => all.findIndex(candidate => modelIdentity(candidate.name, catalogModelBrand(candidate)) === modelIdentity(model.name, catalogModelBrand(model))) === index);
+}
+
+function getCatalogSellModelsForSearch(){
+  return uniqueModels(readSellModels());
+}
+
+function renderCatalogSearchResults(typeName, query, scope, view, results){
+  const models = typeName === 'buy' ? getCatalogBuyModelsForSearch() : getCatalogSellModelsForSearch();
+  const q = String(query || '').trim().toLowerCase();
+  if(!q){
+    results.innerHTML = '';
+    results.classList.remove('open');
+    return;
+  }
+  const filtered = models.filter(model => {
+    const brand = catalogBrandLabel(model).toLowerCase();
+    if(scope === 'brand' && view && view !== '__all__' && brand !== String(view).toLowerCase()) return false;
+    const name = String(model.name || '').toLowerCase();
+    const spec = String(model.spec || '').toLowerCase();
+    return `${brand} ${name} ${spec}`.includes(q);
+  }).slice(0, 12);
+  if(!filtered.length){
+    results.innerHTML = '<div class="admin-catalog-search-result">No matching model</div>';
+  } else {
+    results.innerHTML = filtered.map(model => {
+      const brand = catalogBrandLabel(model);
+      const brandKey = brand.toLowerCase();
+      return `<div class="admin-catalog-search-result" data-catalog-search-result="true" data-catalog-brand="${brandKey}" data-catalog-type="${typeName}"><span class="admin-catalog-search-brand">${brand}</span><span class="admin-catalog-search-model">${model.name}</span></div>`;
+    }).join('');
+  }
+  results.classList.add('open');
+}
+
 function renderCatalogBrandPicker(list, models, type, title){
   const brands = [...new Map(models.map(model => {
     const label = catalogBrandLabel(model);
@@ -838,6 +1102,10 @@ function renderCatalogBrandPicker(list, models, type, title){
   list.innerHTML = brands.length ? `
     <div class="admin-catalog-browser">
       <div class="admin-catalog-browser-head"><strong>Select ${title} brand</strong><span>${models.length} models</span></div>
+      <div class="admin-catalog-search-wrap" data-catalog-search-wrap="${type}" data-catalog-search-scope="brands">
+        <input class="admin-catalog-searchbox" type="search" autocomplete="off" placeholder="Search ${title} brand or model" data-catalog-search="${type}" data-catalog-scope="brands" data-catalog-view="__all__">
+        <div class="admin-catalog-search-results" data-catalog-search-results="${type}"></div>
+      </div>
       <div class="admin-brand-grid">${brands.map(([key, label]) => {
         const count = models.filter(model => catalogBrandLabel(model).toLowerCase() === key).length;
         return `<button class="admin-brand-card" type="button" data-catalog-brand="${key}" data-catalog-type="${type}"><strong>${label}</strong><span>${count} ${count === 1 ? 'model' : 'models'}</span></button>`;
@@ -846,31 +1114,45 @@ function renderCatalogBrandPicker(list, models, type, title){
 }
 
 function renderCatalogModels(list, models, type, view){
-  const filtered = view === '__all__' ? models : models.filter(model => catalogBrandLabel(model).toLowerCase() === view);
+  const compareModelNames = (firstName, secondName) => {
+    const first = String(firstName || ''), second = String(secondName || '');
+    const firstNumber = first.match(/\d+/), secondNumber = second.match(/\d+/);
+    if(firstNumber && secondNumber && Number(firstNumber[0]) !== Number(secondNumber[0])) return Number(firstNumber[0]) - Number(secondNumber[0]);
+    if(firstNumber && !secondNumber) return -1;
+    if(!firstNumber && secondNumber) return 1;
+    return first.localeCompare(second, undefined, {numeric:true, sensitivity:'base'});
+  };
+  const filtered = (view === '__all__' ? models : models.filter(model => catalogBrandLabel(model).toLowerCase() === view))
+    .sort((first, second) => compareModelNames(first.name, second.name));
   const rows = filtered.map(model => type === 'sell' ? `
-    <article class="admin-item" data-sell-type="${model.source}" data-sell-ref="${model.source === 'catalog' ? model.catalogIndex : model.id}" style="cursor:pointer;">
+    <article class="admin-item" data-sell-type="canonical" data-sell-ref="${model.id}" style="cursor:pointer;">
       ${model.image ? `<img src="${model.image}" alt="${model.name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">` : '<div class="admin-thumb">PHONE</div>'}
-      <div><h4>${model.name}${model.hidden ? ' (Hidden)' : ''}</h4><p>${catalogVariantSummary(model)}</p></div>
+      <div><h4>${model.name}${model.hidden || model.deleted ? ' (Hidden)' : ''}</h4><p>${catalogVariantSummary(model)}</p></div>
       <button class="btn btn-ghost" type="button" data-sell-edit>Edit</button>
-      ${model.source === 'catalog' ? `<button class="btn btn-ghost" type="button" data-toggle-sell-catalog="${model.catalogIndex}">${model.hidden ? 'Show' : 'Hide'}</button><button class="btn btn-ghost" type="button" data-delete-sell-catalog="${model.catalogIndex}">Delete</button>` : `<button class="btn btn-ghost" type="button" data-delete-sell-preset="${model.id}">Delete</button>`}
+      <button class="btn btn-ghost" type="button" data-toggle-sell-canonical="${model.id}">${model.hidden || model.deleted ? 'Restore' : 'Hide'}</button><button class="btn btn-ghost" type="button" data-delete-sell-canonical="${model.id}">Delete</button>
     </article>` : `
     <article class="admin-item" data-buy-type="${model.custom ? 'custom' : 'buy'}" data-buy-ref="${model.custom ? model.customIndex : model.id}" style="cursor:pointer;">
       ${model.image ? `<img src="${model.image}" alt="${model.name}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;">` : '<div class="admin-thumb">PHONE</div>'}
-      <div><h4>${model.name}${model.custom && model.visible === false ? ' (Hidden)' : ''}</h4><p>${catalogVariantSummary(model)}${model.grade ? ` · ${model.grade}` : ''}${model.warranty ? ` · ${model.warranty} warranty` : ''}</p></div>
+      <div><h4>${model.name}${(model.custom && model.visible === false) || (!model.custom && (model.hidden || model.deleted)) ? ' (Hidden)' : ''}</h4><p>${catalogVariantSummary(model)}${model.grade ? ` · ${model.grade}` : ''}${model.warranty ? ` · ${model.warranty} warranty` : ''}</p></div>
       <button class="btn btn-ghost" type="button" data-buy-edit>Edit</button>
-      ${model.custom ? `<button class="btn btn-ghost" type="button" data-toggle-product="${model.customIndex}">${model.visible ? 'Hide' : 'Show'}</button><button class="btn btn-ghost" type="button" data-delete-product="${model.customIndex}">Delete</button>` : `<button class="btn btn-ghost" type="button" data-delete-buy-preset="${model.id}">Delete</button>`}
+      ${model.custom ? `<button class="btn btn-ghost" type="button" data-toggle-product="${model.customIndex}">${model.visible ? 'Hide' : 'Show'}</button><button class="btn btn-ghost" type="button" data-delete-product="${model.customIndex}">Delete</button>` : `<button class="btn btn-ghost" type="button" data-toggle-buy-canonical="${model.id}">${model.hidden || model.deleted ? 'Restore' : 'Hide'}</button><button class="btn btn-ghost" type="button" data-delete-buy-canonical="${model.id}">Delete</button>`}
     </article>`).join('');
   const heading = view === '__all__' ? `All ${type} models` : (filtered.length ? catalogBrandLabel(filtered[0]) : view);
-  list.innerHTML = `<div class="admin-catalog-browser-head"><button class="btn btn-ghost" type="button" data-catalog-back="${type}">Back to brands</button><strong>${heading}</strong><span>${filtered.length} models</span></div>${rows || '<p class="admin-empty">No models in this brand.</p>'}`;
+  const selectedBrand = String(view || '').trim().toLowerCase();
+  const searchScope = view === '__all__' ? 'brands' : 'brand';
+  list.innerHTML = `<div class="admin-catalog-browser-head"><button class="btn btn-ghost" type="button" data-catalog-back="${type}">Back to brands</button><strong>${heading}</strong><span>${filtered.length} models</span></div>
+    <div class="admin-catalog-search-wrap" data-catalog-search-wrap="${type}" data-catalog-search-scope="${searchScope}">
+      <input class="admin-catalog-searchbox" type="search" autocomplete="off" placeholder="Search ${heading} model" data-catalog-search="${type}" data-catalog-scope="${searchScope}" data-catalog-view="${selectedBrand || '__all__'}">
+      <div class="admin-catalog-search-results" data-catalog-search-results="${type}"></div>
+    </div>
+    ${rows || '<p class="admin-empty">No models in this brand.</p>'}`;
 }
 
 // Show all sell models through a brand-first browser.
 function renderAdminSellModels(){
   const list = document.getElementById('adminSellModels');
   if(!list) return;
-  const presetModels = readSellModels().map(model => ({...model, source:'preset'}));
-  const catalogModels = readSellCatalog().map((model, index) => ({...model, source:'catalog', catalogIndex:index}));
-  const models = [...presetModels, ...catalogModels].filter((model, index, all) => all.findIndex(candidate => modelIdentity(candidate.name, candidate.brand) === modelIdentity(model.name, model.brand)) === index);
+  const models = uniqueModels(readSellModels());
   if(!models.length){
     list.innerHTML = '<p class="admin-empty">No phones in sell catalog yet. Use "Add sell phone" above.</p>';
     return;
@@ -926,6 +1208,7 @@ async function loadAllDataFromCloud() {
   const cloudBuyCatalog = await window.swapioData?.loadBuyCatalogFromCloud?.();
   const cloudSellCatalog = await window.swapioData?.loadSellCatalogFromCloud?.();
   const cloudRepairCatalog = await window.swapioData?.loadRepairCatalogFromCloud?.();
+  const cloudRecycleCatalog = await window.swapioData?.loadRecycleCatalogFromCloud?.();
   
   if (cloudProducts !== null) {
     localStorage.setItem(productStoreKey, JSON.stringify(cloudProducts));
@@ -945,6 +1228,19 @@ async function loadAllDataFromCloud() {
   }
   if (cloudRepairCatalog !== null && cloudRepairCatalog !== undefined) {
     localStorage.setItem(repairCatalogKey, JSON.stringify(cloudRepairCatalog));
+    renderRepairCatalog();
+  }
+  if (cloudRecycleCatalog !== null && cloudRecycleCatalog !== undefined) {
+    localStorage.setItem('swapioRecycleCatalog', JSON.stringify(cloudRecycleCatalog));
+  }
+
+  if (window.swapioData?.readCatalog && window.swapioData?.saveCatalog) {
+    await Promise.all([
+      window.swapioData.saveCatalog('buy', readBuyModels()),
+      window.swapioData.saveCatalog('sell', readSellModels()),
+      window.swapioData.saveCatalog('repair', [...readRepairCatalog().filter(item => !isRepairServiceRecord(item)), ...readRepairServices()]),
+      window.swapioData.saveCatalog('recycle', readRecycleCatalog())
+    ]);
   }
 }
 
@@ -960,6 +1256,7 @@ function setupAdmin(){
   const passwordInput = document.getElementById('adminPassword');
   const auth = initializeFirebaseAuth();
   setupRepairCatalogManagement();
+  setupRecycleCatalogManagement();
 
   const showDashboardFallback = async () => {
     sessionStorage.setItem('swapioAdminLoggedIn', 'true');
@@ -1104,15 +1401,34 @@ function setupAdmin(){
 
   function getModelStorageVariants(model){
     if(Array.isArray(model.storageVariants) && model.storageVariants.length) return model.storageVariants;
+    if(Array.isArray(model.storageOptions) && model.storageOptions.length){
+      return model.storageOptions.map(storage => ({storage: String(storage).trim(), price: model.price || ''}));
+    }
     const legacy = String(model.details || model.spec || '').split('·')[0].trim();
-    const match = legacy.match(/(16|32|64|128|256|512)\s*GB/i);
-    return match ? [{storage: match[1] === '16' ? '2/32' : match[1] === '32' ? '2/32' : match[1] === '64' ? '4/64' : match[1] === '128' ? '6/128' : '6/256', price: model.price || ''}] : [];
+    const matches = legacy.match(/\d+\s*GB/gi) || [];
+    return matches.map(storage => ({storage: storage.replace(/\s+/g, ' '), price: model.price || ''}));
+  }
+
+  function ensureCustomStorageRows(count){
+    const list = productForm.querySelector('.storage-variant-list');
+    const current = list.querySelectorAll('input[data-custom-storage="true"]').length;
+    for(let index = current + 1; index <= count; index++){
+      const key = `custom-${index}`;
+      list.insertAdjacentHTML('beforeend', `<label class="storage-variant-row custom-storage-row"><input type="checkbox" name="storageVariant" value="${key}" data-custom-storage="true"><input class="storage-variant-name" data-storage-name="${key}" type="text" placeholder="e.g. 128 GB"><span class="storage-price-label">Custom variant price (₹)</span><input class="storage-price" data-storage-price="${key}" aria-label="Custom variant price" type="number" min="0" placeholder="Enter price" disabled></label>`);
+      const checkbox = list.querySelector(`input[value="${key}"]`);
+      checkbox.addEventListener('change', () => {
+        const priceInput = list.querySelector(`[data-storage-price="${key}"]`);
+        priceInput.disabled = !checkbox.checked;
+        if(!checkbox.checked) priceInput.value = '';
+      });
+    }
   }
 
   function fillStorageVariants(model){
     const variants = getModelStorageVariants(model);
     const fixedValues = new Set(['2/32', '4/64', '6/128', '6/256', '8/256', '8/512']);
     const customVariants = variants.filter(item => !fixedValues.has(String(item.storage)));
+    ensureCustomStorageRows(customVariants.length);
     let customIndex = 0;
     productForm.querySelectorAll('input[name="storageVariant"]').forEach(checkbox => {
       const customName = checkbox.dataset.customStorage === 'true' ? productForm.querySelector(`[data-storage-name="${checkbox.value}"]`) : null;
@@ -1132,6 +1448,7 @@ function setupAdmin(){
     event.preventDefault();
     const form = event.currentTarget;
     const data = Object.fromEntries(new FormData(form).entries());
+    data.updatedAt = Date.now();
     
     // Handle "Other Brand" custom name
     if(data.brand === 'OTHER'){
@@ -1197,6 +1514,7 @@ function setupAdmin(){
       const buyModels = readBuyModels();
       const buyId = editIndex.slice(4);
       const buyModel = buyModels.find(model => model.id === buyId);
+      if(!buyModel){ window.alert('This catalog record changed in another browser. The latest catalog has been loaded; please open the model again.'); renderAdminBuyModels(); return; }
       if(hasDuplicateModel(buyModels, data, buyId)){
         window.alert('This model already exists in the Buy catalog.');
         return;
@@ -1209,6 +1527,7 @@ function setupAdmin(){
       buyModel.oldPrice = data.oldPrice;
       buyModel.grade = data.grade;
       buyModel.warranty = data.warranty;
+      buyModel.updatedAt = data.updatedAt;
       buyModel.image = frontImage || buyModel.image || '';
       buyModel.backImage = backImage || buyModel.backImage || '';
       saveBuyModels(buyModels);
@@ -1216,6 +1535,7 @@ function setupAdmin(){
       const sellModels = readSellModels();
       const sellId = editIndex.slice(5);
       const sellModel = sellModels.find(model => model.id === sellId);
+      if(!sellModel){ window.alert('This catalog record changed in another browser. The latest catalog has been loaded; please open the model again.'); renderAdminSellModels(); return; }
       if(hasDuplicateModel(sellModels, data, sellId)){
         window.alert('This model already exists in the Sell catalog.');
         return;
@@ -1227,6 +1547,7 @@ function setupAdmin(){
       sellModel.price = data.price;
       sellModel.image = frontImage || sellModel.image || '';
       sellModel.backImage = backImage || sellModel.backImage || '';
+      sellModel.updatedAt = data.updatedAt;
       saveSellModels(sellModels);
     } else if(editIndex.startsWith('sellcat:')){
       const catalog = readSellCatalog();
@@ -1240,12 +1561,18 @@ function setupAdmin(){
         grade: data.grade || '',
         warranty: data.warranty || '',
         price: data.price,
+        updatedAt: data.updatedAt,
         image: frontImage || '',
         hidden: false
       };
       if(raw === 'new'){
-        if(hasDuplicateModel([...readSellModels(), ...catalog], entry)){
-          window.alert('This model already exists in the Sell catalog.');
+        const existingModels = readSellModels();
+        const existingIndex = existingModels.findIndex(model => modelIdentity(model.name, model.brand) === modelIdentity(entry.name, entry.brand));
+        if(existingIndex >= 0){
+          const existing = existingModels[existingIndex];
+          existingModels[existingIndex] = {...existing, ...entry, id: existing.id, image: frontImage || existing.image || '', hidden: existing.hidden === true ? existing.hidden : false};
+          saveSellModels(existingModels);
+          resetProductForm(); renderAdminSellModels();
           return;
         }
         catalog.unshift(entry);
@@ -1279,19 +1606,6 @@ function setupAdmin(){
       data.backImage = backImage;
       data.visible = true;
       products.unshift(data);
-      // Also save to phone catalog so brand pages / Other Brands keep working
-      const catalog = readPhoneCatalog();
-      catalog.unshift({
-        id: `phone-${Date.now()}`,
-        name: data.name,
-        brand: data.brand || 'Other',
-        price: data.price,
-        condition: data.condition || 'Superb',
-        image: frontImage || '',
-        backImage: backImage || '',
-        spec: data.details || `${data.brand} · ${data.condition || 'Superb'}`
-      });
-      savePhoneCatalog(catalog);
     }
     saveProducts(products); resetProductForm(); renderAdminProducts(); renderAdminBuyModels(); renderAdminSellModels();
   });
@@ -1305,7 +1619,24 @@ function setupAdmin(){
   document.getElementById('adminBuyModels').addEventListener('click', event => {
     const toggle = event.target.closest('[data-toggle-product]');
     const remove = event.target.closest('[data-delete-product]');
+    const canonicalToggle = event.target.closest('[data-toggle-buy-canonical]');
+    const canonicalRemove = event.target.closest('[data-delete-buy-canonical]');
     const presetRemove = event.target.closest('[data-delete-buy-preset]');
+    if(canonicalToggle || canonicalRemove){
+      const id = (canonicalToggle || canonicalRemove).dataset.toggleBuyCanonical || (canonicalToggle || canonicalRemove).dataset.deleteBuyCanonical;
+      const models = readBuyModels();
+      const model = models.find(entry => entry.id === id);
+      if(!model) return;
+      if(canonicalToggle){ model.hidden = !(model.hidden || model.deleted); model.deleted = false; }
+      if(canonicalRemove){
+        if(!window.confirm(`Remove "${model.name}"?`)) return;
+        model.hidden = true;
+        model.deleted = true;
+      }
+      saveBuyModels(models);
+      renderAdminBuyModels();
+      return;
+    }
     if(presetRemove){
       const id = presetRemove.dataset.deleteBuyPreset;
       if(!window.confirm('Remove this Buy catalog model?')) return;
@@ -1362,73 +1693,39 @@ function setupAdmin(){
     }
   });
         document.getElementById('adminSellModels').addEventListener('click', event => {
-    const toggle = event.target.closest('[data-toggle-sell-catalog]');
-    const remove = event.target.closest('[data-delete-sell-catalog]');
-    const presetRemove = event.target.closest('[data-delete-sell-preset]');
-    if(presetRemove){
-      const id = presetRemove.dataset.deleteSellPreset;
-      if(!window.confirm('Remove this Sell catalog model?')) return;
-      const model = readSellModels().find(entry => entry.id === id);
-      const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
-      overrides[id] = {...(overrides[id] || {}), hidden:true};
-      localStorage.setItem('swapioSellModels', JSON.stringify(overrides));
-      if (model) saveSellModels([...readSellModels(), {...model, hidden:true}]);
-      renderAdminSellModels();
-      return;
-    }
+    const toggle = event.target.closest('[data-toggle-sell-canonical]');
+    const remove = event.target.closest('[data-delete-sell-canonical]');
     if(toggle || remove){
-      const catalog = readSellCatalog();
-      if(toggle){
-        const idx = Number(toggle.dataset.toggleSellCatalog);
-        catalog[idx].hidden = !catalog[idx].hidden;
-        saveSellCatalog(catalog);
-      }
+      const id = (toggle || remove).dataset.toggleSellCanonical || (toggle || remove).dataset.deleteSellCanonical;
+      const models = readSellModels();
+      const model = models.find(entry => entry.id === id);
+      if(!model) return;
+      if(toggle){ model.hidden = !(model.hidden || model.deleted); model.deleted = false; }
       if(remove){
-        const idx = Number(remove.dataset.deleteSellCatalog);
-        if(!window.confirm(`Remove "${catalog[idx].name}"?`)) return;
-        catalog.splice(idx,1);
-        saveSellCatalog(catalog);
+        if(!window.confirm(`Remove "${model.name}"?`)) return;
+        model.hidden = true;
+        model.deleted = true;
       }
+      saveSellModels(models);
       renderAdminSellModels();
       return;
     }
     const row = event.target.closest('[data-sell-type]');
     if(!row) return;
-    const type = row.dataset.sellType;
-    const ref = row.dataset.sellRef;
-    if(type === 'catalog'){
-      const catalog = readSellCatalog();
-      const idx = Number(ref);
-      const model = catalog[idx];
-      if(!model) return;
-      productForm.elements.name.value = model.name;
-      setBrandSelectValue(model.brand);
-      productForm.elements.grade.value = model.grade || '';
-      productForm.elements.warranty.value = model.warranty || '';
-      fillStorageVariants(model);
-      productForm.elements.frontPhoto.value = '';
-      productForm.elements.backPhoto.value = '';
-      productForm.elements.editIndex.value = `sellcat:${idx}`;
-      productFormTitle.textContent = 'Edit sell phone';
-      productForm.querySelector('button[type="submit"]').textContent = 'Update sell phone';
-      cancelEdit.hidden = false;
-      productForm.scrollIntoView({behavior:'smooth', block:'center'});
-    } else {
-      const model = readSellModels().find(entry => entry.id === ref);
-      if(!model) return;
-      productForm.elements.name.value = model.name;
-      setBrandSelectValue(model.brand || brandFromSpec(model.spec));
-      productForm.elements.grade.value = model.grade || '';
-      productForm.elements.warranty.value = model.warranty || '';
-      fillStorageVariants(model);
-      productForm.elements.frontPhoto.value = '';
-      productForm.elements.backPhoto.value = '';
-      productForm.elements.editIndex.value = `sell:${model.id}`;
-      productFormTitle.textContent = 'Edit sell phone';
-      productForm.querySelector('button[type="submit"]').textContent = 'Update sell phone';
-      cancelEdit.hidden = false;
-      productForm.scrollIntoView({behavior:'smooth', block:'center'});
-    }
+    const model = readSellModels().find(entry => entry.id === row.dataset.sellRef);
+    if(!model) return;
+    productForm.elements.name.value = model.name;
+    setBrandSelectValue(model.brand || brandFromSpec(model.spec));
+    productForm.elements.grade.value = model.grade || '';
+    productForm.elements.warranty.value = model.warranty || '';
+    fillStorageVariants(model);
+    productForm.elements.frontPhoto.value = '';
+    productForm.elements.backPhoto.value = '';
+    productForm.elements.editIndex.value = `sell:${model.id}`;
+    productFormTitle.textContent = 'Edit sell phone';
+    productForm.querySelector('button[type="submit"]').textContent = 'Update sell phone';
+    cancelEdit.hidden = false;
+    productForm.scrollIntoView({behavior:'smooth', block:'center'});
   });
     document.getElementById('addSellPhoneBtn').addEventListener('click', () => {
     resetProductForm();
@@ -1439,32 +1736,103 @@ function setupAdmin(){
     productForm.scrollIntoView({behavior:'smooth', block:'center'});
   });
   document.getElementById('viewBuyListBtn').addEventListener('click', () => {
-    adminCatalogViews.buy = null;
-    renderAdminBuyModels();
-    document.getElementById('adminBuyModels').scrollIntoView({behavior:'smooth', block:'start'});
+    if(adminCatalogViews.buy === '__all__' || adminCatalogViews.buy) {
+      adminCatalogViews.buy = null;
+      renderAdminBuyModels();
+    } else {
+      adminCatalogViews.buy = '__all__';
+      renderAdminBuyModels();
+      document.getElementById('adminBuyModels').scrollIntoView({behavior:'smooth', block:'start'});
+    }
   });
   document.getElementById('viewSellListBtn').addEventListener('click', () => {
-    adminCatalogViews.sell = null;
-    renderAdminSellModels();
-    document.getElementById('adminSellModels').scrollIntoView({behavior:'smooth', block:'start'});
+    if(adminCatalogViews.sell === '__all__' || adminCatalogViews.sell) {
+      adminCatalogViews.sell = null;
+      renderAdminSellModels();
+    } else {
+      adminCatalogViews.sell = '__all__';
+      renderAdminSellModels();
+      document.getElementById('adminSellModels').scrollIntoView({behavior:'smooth', block:'start'});
+    }
   });
   document.getElementById('adminBuyModels').addEventListener('click', event => {
+    const searchResult = event.target.closest('[data-catalog-search-result]');
     const brand = event.target.closest('[data-catalog-brand]');
     const back = event.target.closest('[data-catalog-back="buy"]');
+    if(searchResult){ adminCatalogViews.buy = searchResult.dataset.catalogBrand; renderAdminBuyModels(); return; }
     if(brand){ adminCatalogViews.buy = brand.dataset.catalogBrand; renderAdminBuyModels(); }
     if(back){ adminCatalogViews.buy = null; renderAdminBuyModels(); }
   });
+  document.getElementById('adminBuyModels').addEventListener('input', event => {
+    const input = event.target.closest('[data-catalog-search]');
+    if(!input) return;
+    const wrap = input.closest('[data-catalog-search-wrap]');
+    const results = wrap ? wrap.querySelector('[data-catalog-search-results]') : null;
+    if(!results) return;
+    renderCatalogSearchResults(input.dataset.catalogSearch, input.value, input.dataset.catalogScope, input.dataset.catalogView, results);
+  });
+  document.getElementById('adminBuyModels').addEventListener('focusin', event => {
+    const input = event.target.closest('[data-catalog-search]');
+    if(!input || !input.value.trim()) return;
+    const wrap = input.closest('[data-catalog-search-wrap]');
+    const results = wrap ? wrap.querySelector('[data-catalog-search-results]') : null;
+    if(results) results.classList.add('open');
+  });
+  document.getElementById('adminBuyModels').addEventListener('focusout', event => {
+    const input = event.target.closest('[data-catalog-search]');
+    if(!input) return;
+    const wrap = input.closest('[data-catalog-search-wrap]');
+    const results = wrap ? wrap.querySelector('[data-catalog-search-results]') : null;
+    if(results) setTimeout(() => results.classList.remove('open'), 150);
+  });
   document.getElementById('adminSellModels').addEventListener('click', event => {
+    const searchResult = event.target.closest('[data-catalog-search-result]');
     const brand = event.target.closest('[data-catalog-brand]');
     const back = event.target.closest('[data-catalog-back="sell"]');
+    if(searchResult){ adminCatalogViews.sell = searchResult.dataset.catalogBrand; renderAdminSellModels(); return; }
     if(brand){ adminCatalogViews.sell = brand.dataset.catalogBrand; renderAdminSellModels(); }
     if(back){ adminCatalogViews.sell = null; renderAdminSellModels(); }
   });
+  document.getElementById('adminSellModels').addEventListener('input', event => {
+    const input = event.target.closest('[data-catalog-search]');
+    if(!input) return;
+    const wrap = input.closest('[data-catalog-search-wrap]');
+    const results = wrap ? wrap.querySelector('[data-catalog-search-results]') : null;
+    if(!results) return;
+    renderCatalogSearchResults(input.dataset.catalogSearch, input.value, input.dataset.catalogScope, input.dataset.catalogView, results);
+  });
+  document.getElementById('adminSellModels').addEventListener('focusin', event => {
+    const input = event.target.closest('[data-catalog-search]');
+    if(!input || !input.value.trim()) return;
+    const wrap = input.closest('[data-catalog-search-wrap]');
+    const results = wrap ? wrap.querySelector('[data-catalog-search-results]') : null;
+    if(results) results.classList.add('open');
+  });
+  document.getElementById('adminSellModels').addEventListener('focusout', event => {
+    const input = event.target.closest('[data-catalog-search]');
+    if(!input) return;
+    const wrap = input.closest('[data-catalog-search-wrap]');
+    const results = wrap ? wrap.querySelector('[data-catalog-search-results]') : null;
+    if(results) setTimeout(() => results.classList.remove('open'), 150);
+  });
   document.getElementById('refreshSubmissions').addEventListener('click', renderAdminSubmissions);
+  document.getElementById('adminSubmissions').addEventListener('click', event => {
+    const row = event.target.closest('[data-request-id]');
+    const panel = document.getElementById('requestDetailPanel');
+    if (!row || !panel) return;
+    const item = adminSubmissionsCache.find(entry => entry.id === row.dataset.requestId);
+    if (!item) return;
+    panel.innerHTML = `<div class="request-detail-head"><div><div class="eyebrow">${submissionType(item)} request</div><h3>${submissionRequestNumber(item)}</h3></div><button type="button" class="btn btn-ghost" data-close-request-detail>Close</button></div>${requestDetailMarkup(item)}`;
+    panel.hidden = false;
+    panel.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+  document.getElementById('requestDetailPanel').addEventListener('click', event => { if (event.target.closest('[data-close-request-detail]')) event.currentTarget.hidden = true; });
   document.getElementById('requestStatusFilter').addEventListener('change', event => { adminRequestStatus = event.target.value; renderAdminSubmissions(); });
+  document.getElementById('requestDateStrip').addEventListener('click', event => { const button = event.target.closest('[data-request-date]'); if (button) { adminRequestDate = button.dataset.requestDate; document.getElementById('requestDateInput').value = ''; renderAdminSubmissions(); } });
+  document.getElementById('requestDateInput').addEventListener('change', event => { adminRequestDate = event.target.value || 'all'; renderAdminSubmissions(); });
   document.querySelectorAll('[data-request-type]').forEach(tab => tab.addEventListener('click', () => { adminRequestType = tab.dataset.requestType; renderAdminSubmissions(); }));
   
-  document.querySelectorAll('[data-admin-tab]').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('[data-admin-tab]').forEach(item => item.classList.remove('active')); tab.classList.add('active'); document.getElementById('adminCatalogTab').hidden = tab.dataset.adminTab !== 'catalog'; document.getElementById('adminRequestsTab').hidden = tab.dataset.adminTab !== 'requests'; document.getElementById('adminRepairTab').hidden = tab.dataset.adminTab !== 'repair'; document.getElementById('adminInventoryTab').hidden = tab.dataset.adminTab !== 'inventory'; document.getElementById('adminBillingTab').hidden = tab.dataset.adminTab !== 'billing'; document.getElementById('adminReturnsTab').hidden = tab.dataset.adminTab !== 'returns'; document.getElementById('adminFinanceTab').hidden = tab.dataset.adminTab !== 'finance'; if (tab.dataset.adminTab === 'finance') renderFinanceDashboard(); if (tab.dataset.adminTab === 'requests') renderAdminSubmissions(); }));
+  document.querySelectorAll('[data-admin-tab]').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('[data-admin-tab]').forEach(item => item.classList.remove('active')); tab.classList.add('active'); document.getElementById('adminCatalogTab').hidden = tab.dataset.adminTab !== 'catalog'; document.getElementById('adminRequestsTab').hidden = tab.dataset.adminTab !== 'requests'; document.getElementById('adminRepairTab').hidden = tab.dataset.adminTab !== 'repair'; document.getElementById('adminRecycleTab').hidden = tab.dataset.adminTab !== 'recycle'; document.getElementById('adminInventoryTab').hidden = tab.dataset.adminTab !== 'inventory'; document.getElementById('adminBillingTab').hidden = tab.dataset.adminTab !== 'billing'; document.getElementById('adminReturnsTab').hidden = tab.dataset.adminTab !== 'returns'; document.getElementById('adminFinanceTab').hidden = tab.dataset.adminTab !== 'finance'; if (tab.dataset.adminTab === 'finance') renderFinanceDashboard(); if (tab.dataset.adminTab === 'requests') renderAdminSubmissions(); }));
   const billingForm = document.getElementById('billingForm');
   const billingItemsList = document.getElementById('billingItemsList');
   const billingEditIndex = { value: '' };
