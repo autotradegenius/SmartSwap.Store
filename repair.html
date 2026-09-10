@@ -55,28 +55,48 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/firebase-auth.js"></script>
+<script src="js/firebase-data.js"></script>
 <script src="js/main.js"></script>
 <script src="js/customer-forms.js"></script>
-<script src="js/sell-master-catalog.js"></script>
+<script src="js/sell-master-catalog.js?v=20260910catalogfix3"></script>
 <script>
 // ---------- repair grid ----------
-const repairServices = [
-  {name:'Screen Replacement', desc:'Original-grade display and touch panel replacement.', price:'From ₹1,499', time:'45 min'},
-  {name:'Battery Replacement', desc:'Restore full-day battery life with a certified cell.', price:'From ₹999', time:'30 min'},
-  {name:'Camera Repair', desc:'Front or rear camera module diagnosis and replacement.', price:'From ₹1,199', time:'40 min'},
-  {name:'Charging Port Fix', desc:'Loose or unresponsive charging port repair.', price:'From ₹799', time:'35 min'},
-  {name:'Water Damage Recovery', desc:'Full diagnostic clean and component-level repair.', price:'From ₹1,999', time:'Same day'},
-  {name:'Software & Performance', desc:'OS issues, slow performance, boot loops, and more.', price:'From ₹499', time:'20 min'},
+let repairServices = [
+  {id:'repair-service-screen-replacement', name:'Screen Replacement', service:'Screen Replacement', isService:true, description:'Original-grade display and touch panel replacement.', desc:'Original-grade display and touch panel replacement.', price:1499, time:'45 min'},
+  {id:'repair-service-battery-replacement', name:'Battery Replacement', service:'Battery Replacement', isService:true, description:'Restore full-day battery life with a certified cell.', desc:'Restore full-day battery life with a certified cell.', price:999, time:'30 min'},
+  {id:'repair-service-camera-repair', name:'Camera Repair', service:'Camera Repair', isService:true, description:'Front or rear camera module diagnosis and replacement.', desc:'Front or rear camera module diagnosis and replacement.', price:1199, time:'40 min'},
+  {id:'repair-service-charging-port-fix', name:'Charging Port Fix', service:'Charging Port Fix', isService:true, description:'Loose or unresponsive charging port repair.', desc:'Loose or unresponsive charging port repair.', price:799, time:'35 min'},
+  {id:'repair-service-water-damage-recovery', name:'Water Damage Recovery', service:'Water Damage Recovery', isService:true, description:'Full diagnostic clean and component-level repair.', desc:'Full diagnostic clean and component-level repair.', price:1999, time:'Same day'},
+  {id:'repair-service-software-performance', name:'Software & Performance', service:'Software & Performance', isService:true, description:'OS issues, slow performance, boot loops, and more.', desc:'OS issues, slow performance, boot loops, and more.', price:499, time:'20 min'},
 ];
-document.getElementById('repairGrid').innerHTML = repairServices.map(s=>`
+if (window.swapioData?.readCatalog) {
+  repairServices = window.swapioData.readCatalog('repair', repairServices, false).filter(item => item.isService !== false && !item.deleted).map(item => ({...item, name:item.service, desc:item.description || item.desc || '', price:Number(item.price || 0)}));
+}
+function renderRepairServices() {
+  const catalog = JSON.parse(localStorage.getItem('swapioRepairCatalog') || '[]');
+  const services = repairServices.map(service => {
+    const matches = catalog.filter(item => item.service === service.name && Number(item.price) > 0);
+    const price = matches.length ? Math.min(...matches.map(item => Number(item.price))) : (Number(service.price) || Number(String(service.price).replace(/[^0-9]/g, '')));
+    const times = matches.map(item => item.time).filter(Boolean);
+    return {...service, price: `From ₹${price.toLocaleString('en-IN')}`, time: times[0] || service.time};
+  });
+  document.getElementById('repairGrid').innerHTML = services.map(s=>`
   <a class="service-card repair-service-link" href="repair-service.html?service=${encodeURIComponent(s.name)}">
     <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 005.4-5.4l-2.1 2.1-2-2 2.1-2.1z"/></svg>
     <h4>${s.name}</h4>
     <p>${s.desc}</p>
     <div class="meta"><span>${s.price}</span><span>${s.time}</span></div>
   </a>`).join('');
+}
+renderRepairServices();
+Promise.resolve(window.swapioData?.loadRepairCatalogFromCloud?.()).then(catalog => {
+  if (!Array.isArray(catalog)) return;
+  localStorage.setItem('swapioRepairCatalog', JSON.stringify(catalog));
+  renderRepairServices();
+}).catch(() => {});
 </script>
 </body>
 </html>

@@ -109,9 +109,12 @@ async function loadPartials(){
 
   // Once header/footer are in the page, wire up everything that lives inside them
   highlightActiveNav();
+  highlightActiveMobileTab();
   buildTicker();
   setupHamburger();
+  setupMobileTabNavigation();
   setupHistoryNavigation();
+  setupLocationButton();
   ensureLoginUI();
   ensureChatbotWidget();
   setupLoginModal();
@@ -131,6 +134,16 @@ function setupHistoryNavigation(){
   if(forward) forward.addEventListener('click', () => window.history.forward());
 }
 
+function setupLocationButton(){
+  const button = document.getElementById('locationBtn');
+  if(!button) return;
+
+  button.addEventListener('click', () => {
+    const storeQuery = encodeURIComponent('Shop No. 3, Duggal Colony Gate No. 1, Near Burger King, Deoli Main Road, New Delhi - 110080');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${storeQuery}`, '_blank', 'noopener');
+  });
+}
+
 // ---------- 2. Highlight current page in nav ----------
 function highlightActiveNav(){
   // <body data-page="sell"> tells us which page we're on
@@ -139,6 +152,48 @@ function highlightActiveNav(){
     if(link.getAttribute('data-page') === current){
       link.classList.add('active');
     }
+  });
+}
+
+// ---------- 2.5. Highlight active mobile tab ----------
+function highlightActiveMobileTab(){
+  const current = document.body.getAttribute('data-page') || 'index';
+  const mobileTabNav = document.getElementById('mobileTabNav');
+  if(!mobileTabNav) return;
+  
+  // Map page names to tab names
+  const pageToTab = {
+    'index': 'home',
+    'buy': 'buy',
+    'sell': 'sell',
+    'repair': 'repair'
+  };
+  
+  const activeTab = pageToTab[current];
+  mobileTabNav.querySelectorAll('.mobile-tab-btn').forEach(btn => {
+    if(btn.getAttribute('data-mobile-tab') === activeTab){
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+// ---------- 2.6. Setup mobile tab navigation ----------
+function setupMobileTabNavigation(){
+  const mobileTabNav = document.getElementById('mobileTabNav');
+  if(!mobileTabNav) return;
+  
+  mobileTabNav.querySelectorAll('.mobile-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const href = btn.getAttribute('data-href');
+      if(href){
+        // Navigate to the page
+        const url = isLiveServerPreview() ? `/${href}.html` : `/${href}`;
+        window.location.href = url;
+      }
+    });
   });
 }
 

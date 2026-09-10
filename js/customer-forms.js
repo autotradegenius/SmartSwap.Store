@@ -49,7 +49,7 @@ function setupCustomerForm(formId, type){
     const preview = form.querySelector('.photo-preview');
     if(preview) preview.innerHTML = '';
     const message = form.querySelector('.form-msg');
-    message.textContent = 'Request received. Our team will contact you shortly.';
+    message.textContent = `Request ${saved.requestNumber || ''} received. Our team will contact you shortly.`;
     message.className = 'form-msg ok';
   }
 

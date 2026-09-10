@@ -18,10 +18,13 @@
         <div class="sell-panel-left">
           <div class="sell-title-block">
             <h1>Sell Damaged Phone</h1>
-            <p class="sell-step-subtitle">Select your phone brand and memory. We accept damaged phones for evaluation.</p>
+            <p class="sell-step-subtitle">Select your phone brand and memory. We accept damaged phones for a clear quote.</p>
           </div>
 
-          <label class="damaged-field-label" for="damagedBrand">Phone brand</label>
+          <div class="damaged-field-label damaged-popular-label">Popular brands</div>
+          <div id="damagedPopularBrands" class="damaged-popular-brands" aria-label="Popular phone brands"></div>
+
+          <label class="damaged-field-label" for="damagedBrand">Select brand</label>
           <select id="damagedBrand" class="damaged-select">
             <option value="">Select brand</option>
             <option>Apple</option><option>Xiaomi</option><option>Samsung</option><option>Vivo</option>
@@ -41,6 +44,14 @@
           </div>
 
           <a id="damagedContinue" class="btn btn-coral btn-wide damaged-continue" href="login.html" aria-disabled="true">Sell Phone →</a>
+
+          <div class="eco-recycle-scene">
+            <div class="eco-recycle-note">
+              <div class="eco-recycle-mark" aria-hidden="true">♻</div>
+              <div><strong>Make an eco-friendly choice</strong><span>Recycle your phone responsibly and help keep e-waste out of landfills.</span></div>
+            </div>
+            <div class="eco-plant" aria-hidden="true"><span class="eco-leaf eco-leaf-left"></span><span class="eco-leaf eco-leaf-right"></span><span class="eco-stem"></span><span class="eco-roots"></span></div>
+          </div>
         </div>
       </div>
     </section>
@@ -58,6 +69,15 @@
     const brandSelect = document.getElementById('damagedBrand');
     const memoryButtons = document.querySelectorAll('[data-memory]');
     const continueLink = document.getElementById('damagedContinue');
+    const popularBrandGrid = document.getElementById('damagedPopularBrands');
+    const popularBrands = [['apple', 'Apple'], ['samsung', 'Samsung'], ['xiaomi', 'Xiaomi'], ['vivo', 'Vivo'], ['oneplus', 'OnePlus']];
+    const brandLogoUrl = slug => slug === 'nokia' ? 'https://cdn.simpleicons.org/nokia/1246a0' : `https://cdn.simpleicons.org/${slug}`;
+    popularBrandGrid.innerHTML = popularBrands.map(([slug, label]) => `<button class="damaged-brand-card" type="button" data-brand="${label}"><span class="damaged-brand-mark"><img src="${brandLogoUrl(slug)}" alt="${label} logo" loading="lazy"><strong>${label}</strong></span><span>${label}</span></button>`).join('');
+    const popularBrandButtons = popularBrandGrid.querySelectorAll('[data-brand]');
+    function syncPopularBrand() {
+      popularBrandButtons.forEach(button => button.classList.toggle('selected', button.dataset.brand === brandSelect.value));
+    }
+    popularBrandButtons.forEach(button => button.addEventListener('click', () => { brandSelect.value = button.dataset.brand; syncPopularBrand(); updateDamagedLink(); }));
     function updateDamagedLink() {
       const memory = document.querySelector('[data-memory].selected')?.dataset.memory || '';
       if (!brandSelect.value || !memory) {
@@ -68,7 +88,7 @@
       continueLink.href = `done.html?damaged=1&brand=${encodeURIComponent(brandSelect.value)}&memory=${encodeURIComponent(memory)}&offer=${memoryPrice}`;
       continueLink.removeAttribute('aria-disabled');
     }
-    brandSelect.addEventListener('change', updateDamagedLink);
+    brandSelect.addEventListener('change', () => { syncPopularBrand(); updateDamagedLink(); });
     memoryButtons.forEach(button => button.addEventListener('click', () => {
       memoryButtons.forEach(item => item.classList.remove('selected'));
       button.classList.add('selected');

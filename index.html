@@ -187,8 +187,8 @@
 <script src="js/firebase-auth.js"></script>
 <script src="js/firebase-data.js"></script>
 <script src="js/brand-experience.js"></script>
-<script src="js/sell-master-catalog.js"></script>
-<script src="js/buy-master-catalog.js"></script>
+<script src="js/sell-master-catalog.js?v=20260910catalogfix3"></script>
+<script src="js/buy-master-catalog.js?v=20260910buyorder1"></script>
 <script src="js/site-config.js"></script>
 <script src="js/chatbot-responses.js?v=2"></script>
 <script src="js/main.js"></script>
@@ -239,6 +239,16 @@
     });
   });
   const homeSaleGrid = document.getElementById('homeFlashSaleGrid');
+  const compareHomeBuyModelNames = (firstName, secondName) => {
+    const first = String(firstName || ''), second = String(secondName || '');
+    const firstNumber = first.match(/\d+/), secondNumber = second.match(/\d+/);
+    if(firstNumber && secondNumber && Number(firstNumber[0]) !== Number(secondNumber[0])) return Number(firstNumber[0]) - Number(secondNumber[0]);
+    if(firstNumber && !secondNumber) return -1;
+    if(!firstNumber && secondNumber) return 1;
+    return first.localeCompare(second, undefined, {numeric:true, sensitivity:'base'});
+  };
+  const sortHomeBuyModels = () => homeBuyModels.sort((first, second) => String(first.brand || '').localeCompare(String(second.brand || ''), undefined, {sensitivity:'base'}) || compareHomeBuyModelNames(first.name, second.name));
+  sortHomeBuyModels();
   const homeGradeClass = {Superb:'pill-green', Good:'pill-gold', Fair:'pill-coral'};
   let activeHomeFilter = 'all';
   function renderHomeSale(models) {
@@ -329,6 +339,7 @@
         }
         if (product.visible !== false) mergeModel({id, custom:true, name:product.name, spec:product.details || `${product.brand} · Admin listing`, now:`₹${Number(product.price || 0).toLocaleString('en-IN')}`, was:'', grade:product.grade || 'Superb', warranty:product.warranty || '30-day', image:product.frontImage || product.photos?.[0] || ''});
       });
+      sortHomeBuyModels();
       filterHomeSale();
     } catch (error) {
       console.warn('Index Buy catalog cloud sync failed.', error);

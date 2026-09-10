@@ -19,9 +19,83 @@
     buyCatalog: 'buyCatalog',
     sellCatalog: 'sellCatalog',
     repairCatalog: 'repairCatalog',
+    recycleCatalog: 'recycleCatalog',
     bills: 'bills',
     billingCounter: 'billingCounter'
   };
+  const REQUEST_OUTBOX_KEY = 'swapioRequestOutbox';
+  const CATALOG_KEYS = {
+    buy: STORAGE_KEYS.buyCatalog,
+    sell: STORAGE_KEYS.sellCatalog,
+    repair: STORAGE_KEYS.repairCatalog,
+    recycle: 'swapioRecycleCatalog'
+  };
+  const CATALOG_SAVE = {
+    buy: saveBuyCatalog,
+    sell: saveSellCatalog,
+    repair: saveRepairCatalog,
+    recycle: items => {
+      setLocalStorage(CATALOG_KEYS.recycle, items);
+      return syncCatalogDocument('recycleCatalog', { items });
+    }
+  };
+
+  function requestPrefix(type) {
+    return String(type || '').toLowerCase() === 'order' ? 'BUY' : String(type || 'sell').toUpperCase().replace('DAMAGED-PHONE', 'SELL');
+  }
+
+  function createRequestNumber(type) {
+    const prefix = requestPrefix(type);
+    const stamp = Date.now().toString(36).slice(-2).toUpperCase();
+    const random = Math.random().toString(36).slice(2, 4).toUpperCase();
+    return `${prefix}-${stamp}${random}`;
+  }
+
+  function readRequestOutbox() {
+    return safeParse(REQUEST_OUTBOX_KEY, []);
+  }
+
+  function writeRequestOutbox(items) {
+    setLocalStorage(REQUEST_OUTBOX_KEY, items);
+  }
+
+  function queueCustomerSubmission(submission) {
+    const outbox = readRequestOutbox().filter(item => item.requestNumber !== submission.requestNumber);
+    outbox.push(submission);
+    writeRequestOutbox(outbox);
+  }
+
+  function removeQueuedSubmission(requestNumber) {
+    writeRequestOutbox(readRequestOutbox().filter(item => item.requestNumber !== requestNumber));
+  }
+
+  function cleanSubmissionData(value) {
+    if (Array.isArray(value)) return value.map(cleanSubmissionData);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value)
+        .filter(([, entry]) => entry !== undefined && typeof entry !== 'function')
+        .map(([key, entry]) => [key, cleanSubmissionData(entry)]));
+    }
+    return value;
+  }
+
+  function migrateLegacyCustomerSubmissions() {
+    const legacyKeys = [
+      ['swapioSellSubmissions', 'sell'],
+      ['swapioDamagedSubmissions', 'damaged-phone']
+    ];
+    legacyKeys.forEach(([key, type]) => {
+      const legacy = safeParse(key, []);
+      if (!Array.isArray(legacy) || !legacy.length) return;
+      legacy.forEach(item => {
+        const migrated = {...item, type: item.type || type};
+        if (!migrated.requestNumber) migrated.requestNumber = createRequestNumber(migrated.type);
+        if (!migrated.createdAt || typeof migrated.createdAt !== 'number') migrated.createdAt = Date.now();
+        queueCustomerSubmission(migrated);
+      });
+      localStorage.removeItem(key);
+    });
+  }
 
   function safeParse(key, fallback) {
     try {
@@ -169,14 +243,16 @@
   }
 
   function saveBuyCatalog(items) {
-    setLocalStorage(STORAGE_KEYS.buyCatalog, items);
-    return syncBuyCatalogToCloud(items);
+    const records = stampCatalogRecords(STORAGE_KEYS.buyCatalog, 'buy', items);
+    setLocalStorage(STORAGE_KEYS.buyCatalog, records);
+    return syncBuyCatalogToCloud(records);
   }
 
   async function syncBuyCatalogToCloud(items) {
     const db = getDb();
     if (!db) return false;
-    await setDocument('buyCatalog', { models: items, updatedAt: Date.now() });
+    const current = await getDocument('buyCatalog');
+    await setDocument('buyCatalog', { models: mergeCatalogRecords(current?.models, items, 'buy'), updatedAt: Date.now() });
     return true;
   }
 
@@ -191,14 +267,16 @@
   }
 
   function saveSellCatalog(items) {
-    setLocalStorage(STORAGE_KEYS.sellCatalog, items);
-    return syncSellCatalogToCloud(items);
+    const records = stampCatalogRecords(STORAGE_KEYS.sellCatalog, 'sell', items);
+    setLocalStorage(STORAGE_KEYS.sellCatalog, records);
+    return syncSellCatalogToCloud(records);
   }
 
   async function syncSellCatalogToCloud(items) {
     const db = getDb();
     if (!db) return false;
-    await setDocument('sellCatalog', { models: items, updatedAt: Date.now() });
+    const current = await getDocument('sellCatalog');
+    await setDocument('sellCatalog', { models: mergeCatalogRecords(current?.models, items, 'sell'), updatedAt: Date.now() });
     return true;
   }
 
@@ -213,14 +291,16 @@
   }
 
   function saveRepairCatalog(items) {
-    setLocalStorage(STORAGE_KEYS.repairCatalog, items);
-    return syncRepairCatalogToCloud(items);
+    const records = stampCatalogRecords(STORAGE_KEYS.repairCatalog, 'repair', items);
+    setLocalStorage(STORAGE_KEYS.repairCatalog, records);
+    return syncRepairCatalogToCloud(records);
   }
 
   async function syncRepairCatalogToCloud(items) {
     const db = getDb();
     if (!db) return false;
-    await setDocument('repairCatalog', { repairs: items, updatedAt: Date.now() });
+    const current = await getDocument('repairCatalog');
+    await setDocument('repairCatalog', { repairs: mergeCatalogRecords(current?.repairs, items, 'repair'), updatedAt: Date.now() });
     return true;
   }
 
@@ -228,6 +308,115 @@
     const data = await getDocument('repairCatalog');
     if (!data) return null;
     return Array.isArray(data.repairs) ? data.repairs : [];
+  }
+
+  function catalogIdentity(record) {
+    const domain = String(record?.domain || '').toLowerCase();
+    const brand = String(record?.brand || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+    let name = String(record?.name || record?.model || record?.service || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (brand && name.startsWith(brand)) name = name.slice(brand.length);
+    const variant = String(record?.memory || record?.storage || record?.variant || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return `${domain}:${brand}:${name}:${variant}`;
+  }
+
+  function normalizeSellModelName(record) {
+    if (!record || String(record.domain || '').toLowerCase() !== 'sell') return record;
+    const brand = String(record.brand || '').trim();
+    const name = String(record.name || '').trim();
+    if (!brand || !name) return record;
+    const prefix = new RegExp(`^${brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s-]+`, 'i');
+    const modelName = name.replace(prefix, '').trim();
+    return modelName ? {...record, name: `${brand} ${modelName}`} : record;
+  }
+
+  function preferCatalogRecord(current, candidate) {
+    if (!current) return candidate;
+    const currentInactive = current.hidden === true || current.deleted === true || current.enabled === false;
+    const candidateInactive = candidate.hidden === true || candidate.deleted === true || candidate.enabled === false;
+    if (currentInactive !== candidateInactive) return candidateInactive ? current : candidate;
+    return Number(candidate.updatedAt || 0) >= Number(current.updatedAt || 0) ? candidate : current;
+  }
+
+  function stampCatalogRecords(storageKey, domain, items) {
+    const previous = safeParse(storageKey, []);
+    const previousByIdentity = new Map(previous.map(item => [catalogIdentity({...item, domain}), item]));
+    const now = Date.now();
+    return (Array.isArray(items) ? items : []).map(item => {
+      const previousItem = previousByIdentity.get(catalogIdentity({...item, domain}));
+      const {updatedAt: ignoredCurrentTimestamp, ...currentData} = item;
+      const {updatedAt: ignoredPreviousTimestamp, ...previousData} = previousItem || {};
+      const unchanged = previousItem && JSON.stringify(currentData) === JSON.stringify(previousData);
+      const requestedTimestamp = Number(item.updatedAt || 0);
+      const explicitlyUpdated = requestedTimestamp > Number(previousItem?.updatedAt || 0);
+      return {...item, updatedAt: explicitlyUpdated || !unchanged ? (requestedTimestamp || now) : previousItem.updatedAt};
+    });
+  }
+
+  function mergeCatalogRecords(existing, incoming, domain) {
+    const merged = new Map();
+    [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])].forEach(item => {
+      const key = catalogIdentity({...item, domain});
+      merged.set(key, preferCatalogRecord(merged.get(key), item));
+    });
+    return [...merged.values()];
+  }
+
+  function readCatalog(domain, seeds = [], includeHidden = true) {
+    const key = CATALOG_KEYS[domain];
+    if (!key) return [];
+    const stored = safeParse(key, []);
+    const records = Array.isArray(stored) ? stored : [];
+    const byIdentity = new Map();
+    const seedRecords = Array.isArray(seeds) ? seeds : [];
+    seedRecords.forEach(seed => {
+      if (!seed) return;
+      const identity = catalogIdentity({...seed, domain});
+      const record = {...seed, domain, enabled: seed.enabled !== false, source: seed.source || 'seed'};
+      if (!byIdentity.has(identity)) byIdentity.set(identity, record);
+    });
+    records.forEach(record => {
+      const identity = catalogIdentity({...record, domain});
+      const current = byIdentity.get(identity);
+      const hasSavedEdit = Number(record.updatedAt || 0) > 0;
+      if (domain === 'sell' && current && !Number(current.updatedAt || 0) && !hasSavedEdit) return;
+      byIdentity.set(identity, preferCatalogRecord(current, record));
+    });
+    const merged = [...byIdentity.values()].map(normalizeSellModelName);
+    setLocalStorage(key, merged);
+    return includeHidden ? merged : merged.filter(record => record.enabled !== false && record.hidden !== true && record.deleted !== true);
+  }
+
+  function saveCatalog(domain, items) {
+    const key = CATALOG_KEYS[domain];
+    if (!key) return Promise.resolve(false);
+    const records = (Array.isArray(items) ? items : []).map(item => ({...item, domain, source: item.source || 'admin'}));
+    setLocalStorage(key, records);
+    if (domain === 'buy') return saveBuyCatalog(records);
+    if (domain === 'sell') return saveSellCatalog(records);
+    if (domain === 'repair') return saveRepairCatalog(records);
+    return saveRecycleCatalog(records);
+  }
+
+  async function syncCatalogDocument(docKey, payload) {
+    const db = getDb();
+    if (!db) return false;
+    const current = await getDocument(docKey);
+    const field = Object.keys(payload)[0];
+    const merged = mergeCatalogRecords(current?.[field], payload[field], 'recycle');
+    await setDocument(docKey, {[field]: merged, updatedAt: Date.now()});
+    return true;
+  }
+
+  async function loadRecycleCatalogFromCloud() {
+    const data = await getDocument('recycleCatalog');
+    if (!data) return null;
+    return Array.isArray(data.items) ? data.items : [];
+  }
+
+  async function saveRecycleCatalog(items) {
+    const records = stampCatalogRecords(CATALOG_KEYS.recycle, 'recycle', items);
+    setLocalStorage(CATALOG_KEYS.recycle, records);
+    return syncCatalogDocument('recycleCatalog', { items: records });
   }
 
   function readReturns() {
@@ -303,10 +492,32 @@
   }
 
   async function saveCustomerSubmission(submission) {
+    const prepared = cleanSubmissionData({
+      ...submission,
+      requestNumber: submission.requestNumber || createRequestNumber(submission.type),
+      status: submission.status || 'New',
+      createdAt: Number(submission.createdAt) || Date.now()
+    });
+    Object.assign(submission, prepared);
+    queueCustomerSubmission(prepared);
     const db = getDb();
     if (!db) throw new Error('Firebase is not configured yet.');
-    await db.collection('submissions').add(submission);
-    return true;
+    await db.collection('submissions').doc(prepared.requestNumber).set(prepared, { merge: true });
+    removeQueuedSubmission(prepared.requestNumber);
+    return prepared;
+  }
+
+  async function flushCustomerSubmissionOutbox() {
+    const pending = readRequestOutbox();
+    if (!pending.length || !getDb()) return;
+    for (const submission of pending) {
+      try {
+        await getDb().collection('submissions').doc(submission.requestNumber).set(submission, { merge: true });
+        removeQueuedSubmission(submission.requestNumber);
+      } catch (error) {
+        console.warn('Pending customer request is waiting for Firebase.', error);
+      }
+    }
   }
 
   async function loadCustomerSubmissions() {
@@ -378,6 +589,11 @@
     saveRepairCatalog,
     syncRepairCatalogToCloud,
     loadRepairCatalogFromCloud,
+    readCatalog,
+    saveCatalog,
+    loadRecycleCatalogFromCloud,
+    saveRecycleCatalog,
+    catalogIdentity,
     readReturns,
     saveReturns,
     syncReturnsToCloud,
@@ -388,9 +604,14 @@
     loadBillsFromCloud,
     getNextBillNumber,
     saveCustomerSubmission,
+    flushCustomerSubmissionOutbox,
     loadCustomerSubmissions,
     loadAllDataFromCloud,
     setDocument,
     getDocument
   };
+  migrateLegacyCustomerSubmissions();
+  window.addEventListener('online', flushCustomerSubmissionOutbox);
+  setTimeout(flushCustomerSubmissionOutbox, 1500);
+  setInterval(flushCustomerSubmissionOutbox, 10000);
 })();

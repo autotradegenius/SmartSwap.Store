@@ -27,6 +27,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /admin/recycleCatalog {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /admin/inventory {
       allow read, write: if isAdmin();
     }

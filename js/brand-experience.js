@@ -22,6 +22,11 @@
     const buyPage = path.endsWith('/buy.html') || path.endsWith('/buy');
     if (document.body.dataset.page === 'index') return `buy.html?brand=${slug}`;
     if (document.body.dataset.page === 'buy') return `buy.html?brand=${slug}`;
+    if (document.body.dataset.page === 'sell') {
+      if (path.includes('/sell-flow/')) return `brand.html?brand=${slug}`;
+      if (path.includes('/brand/')) return `../sell-flow/brand.html?brand=${slug}`;
+      return `sell-flow/brand.html?brand=${slug}`;
+    }
     if (path.endsWith('/more-brands.html')) {
       const mode = new URLSearchParams(window.location.search).get('mode');
       return mode === 'buy' ? `buy.html?brand=${slug}` : `sell-flow/brand.html?brand=${slug}`;

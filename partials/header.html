@@ -4,12 +4,55 @@
       .nav-row{position:relative;padding:12px 0;gap:8px;}
       .logo{font-size:18px;gap:6px;min-width:0;}
       .logo-mark{width:26px;height:26px;}
-      .nav-right{gap:8px;}
-      .nav-right .history-btn,.nav-right > .icon-btn:not(.history-btn){display:none !important;}
-      #loginOpenBtn,#logoutBtn{padding:9px 12px !important;font-size:13px !important;}
-      .hamburger{display:flex;flex-shrink:0;}
+      .nav-right{gap:6px;}
+      .nav-right .history-btn{display:none !important;}
+      .nav-right > .icon-btn:not(.history-btn){display:none !important;}
+      #loginOpenBtn,#logoutBtn{padding:8px 10px !important;font-size:12.5px !important;}
+      .hamburger{display:flex !important;flex:0 0 34px;width:34px;height:34px;align-items:center;justify-content:center;}
+      .nav-links{display:none !important;}
       .nav-links.mobile-open{display:flex !important;position:absolute;top:calc(100% + 8px);right:0;left:auto;width:min(220px,calc(100vw - 32px));z-index:10;flex-direction:column;gap:0;padding:8px;background:var(--paper);border:1px solid var(--line-light);box-shadow:0 10px 24px rgba(18,20,28,.12);}
       .nav-links.mobile-open a{display:block;padding:12px 16px;}
+    }
+    
+    /* Mobile Tab Navigation */
+    @media (max-width:720px){
+      .mobile-tab-nav{
+        display:flex;
+        position:sticky;
+        top:0;
+        z-index:999;
+        background:rgba(250,247,241,.95);
+        backdrop-filter:blur(10px);
+        border-bottom:1px solid var(--line-light);
+        padding:0;
+        gap:0;
+        overflow-x:auto;
+        scroll-behavior:smooth;
+      }
+      .mobile-tab-nav::-webkit-scrollbar{height:2px;}
+      .mobile-tab-nav::-webkit-scrollbar-track{background:transparent;}
+      .mobile-tab-nav::-webkit-scrollbar-thumb{background:var(--line-light);border-radius:1px;}
+      .mobile-tab-btn{
+        flex:0 0 auto;
+        padding:12px 18px;
+        background:transparent;
+        border:none;
+        border-bottom:2px solid transparent;
+        color:var(--slate);
+        font-size:13px;
+        font-weight:600;
+        cursor:pointer;
+        transition:color .2s ease, border-color .2s ease;
+        white-space:nowrap;
+      }
+      .mobile-tab-btn:hover{color:var(--ink);}
+      .mobile-tab-btn.active{
+        color:var(--coral);
+        border-bottom-color:var(--coral);
+      }
+    }
+    @media (min-width:721px){
+      .mobile-tab-nav{display:none !important;}
     }
   </style>
   <div class="wrap nav-row">
@@ -32,15 +75,31 @@
     <div class="nav-right">
       <button class="icon-btn history-btn" type="button" data-nav-history="back" title="Go back" aria-label="Go back">&larr;</button>
       <button class="icon-btn history-btn" type="button" data-nav-history="forward" title="Go forward" aria-label="Go forward">&rarr;</button>
-      <div class="icon-btn" title="Track your order">
+      <button class="icon-btn" id="locationBtn" type="button" title="Find our store" aria-label="Find our store">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#12141c" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      </div>
+      </button>
       <span id="authUserLabel" class="auth-user-label" hidden></span>
       <button class="btn btn-ink" id="loginOpenBtn" style="padding:10px 20px;font-size:14px;">Login</button>
       <button class="btn btn-ghost" id="logoutBtn" style="padding:10px 16px;font-size:14px;" hidden>Logout</button>
       <div class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></div>
     </div>
   </div>
+  
+  <!-- Mobile Quick Navigation Tabs -->
+  <nav class="mobile-tab-nav" id="mobileTabNav" role="navigation" aria-label="Quick navigation">
+    <button type="button" class="mobile-tab-btn" data-mobile-tab="home" data-href="index" aria-label="Go home">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:4px;vertical-align:text-bottom;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><path d="M9 22V12h6v10"/></svg>Home
+    </button>
+    <button type="button" class="mobile-tab-btn" data-mobile-tab="sell" data-href="sell" aria-label="Sell your phone">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:4px;vertical-align:text-bottom;"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1"/></svg>Sell
+    </button>
+    <button type="button" class="mobile-tab-btn" data-mobile-tab="buy" data-href="buy" aria-label="Browse and buy phones">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:4px;vertical-align:text-bottom;"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Buy
+    </button>
+    <button type="button" class="mobile-tab-btn" data-mobile-tab="repair" data-href="repair" aria-label="Book a repair">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:4px;vertical-align:text-bottom;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 1 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Repair
+    </button>
+  </nav>
 </header>
 
 <div class="ticker-band">

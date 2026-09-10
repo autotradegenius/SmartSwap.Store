@@ -4,10 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tell us more about your device | SmartSwap.Store</title>
+  <script>window.location.replace(`screen.html${window.location.search}`);</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/style.css?v=20260908mobile" />
 </head>
 <body data-page="sell">
   <div id="site-header"></div>
@@ -22,19 +23,19 @@
           <p class="sell-step-subtitle">Please provide correct details</p>
 
           <div class="sell-option-grid" style="grid-template-columns:repeat(2,minmax(160px,1fr));">
-            <button class="sell-option-card" type="button">
+            <button class="sell-option-card" type="button" data-screen-body="screen-crack" aria-pressed="false">
               <div class="option-figure"><svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="10" width="36" height="58" rx="5"/><path d="M30 18h20M30 58h20M32 70h16"/><path d="M18 38h6M56 38h6"/><path d="M40 26v20M30 36h20"/></g></svg></div>
               <div class="option-text">Broken/scratch on device screen</div>
             </button>
-            <button class="sell-option-card" type="button">
+            <button class="sell-option-card" type="button" data-screen-body="dead-spot" aria-pressed="false">
               <div class="option-figure"><svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="10" width="36" height="58" rx="5"/><path d="M28 20h24M28 60h24M30 70h20"/><path d="M34 26v26M46 26v26M28 38h24"/></g></svg></div>
               <div class="option-text">Dead Spot/visible line and discoloration on screen</div>
             </button>
-            <button class="sell-option-card" type="button">
+            <button class="sell-option-card" type="button" data-screen-body="body-dent" aria-pressed="false">
               <div class="option-figure"><svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="10" width="36" height="58" rx="5"/><path d="M30 16l2-4h16l2 4M30 60l2 4h16l2-4M28 32h24M28 48h24"/><path d="M35 24v18M45 24v18"/></g></svg></div>
               <div class="option-text">Scratch/Dent on device body</div>
             </button>
-            <button class="sell-option-card" type="button">
+            <button class="sell-option-card" type="button" data-screen-body="panel-broken" aria-pressed="false">
               <div class="option-figure"><svg viewBox="0 0 80 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="22" y="10" width="36" height="58" rx="5"/><path d="M30 18h20M30 62h20M24 30h32M24 46h32"/><path d="M34 25v12M46 25v12M34 43v12M46 43v12"/></g></svg></div>
               <div class="option-text">Device panel missing/broken</div>
             </button>
@@ -100,6 +101,6 @@
   <script src="../js/firebase-data.js"></script>
   <script src="../js/site-config.js"></script>
   <script src="../js/main.js"></script>
-  <script src="../js/sell-flow.js"></script>
+  <script src="../js/sell-flow.js?v=20260910sellsummary1"></script>
 </body>
 </html>

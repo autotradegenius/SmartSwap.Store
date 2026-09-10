@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/style.css?v=20260910screenhorizontal1" />
 </head>
 <body data-page="sell">
   <div id="site-header"></div>
@@ -18,29 +18,12 @@
 
       <div class="sell-main-panel" style="grid-template-columns:1.6fr .9fr;">
         <div class="sell-panel-left">
-          <div class="sell-step-header">Select screen/body defects that are applicable!</div>
-          <p class="sell-step-subtitle">Please provide correct details</p>
+          <div class="sell-step-header">Tell us more about your device's screen defects?</div>
+          <p class="sell-step-subtitle">(because you selected defective screen)</p>
 
-          <div class="sell-option-grid" style="grid-template-columns:repeat(2,minmax(160px,1fr));">
-            <button class="sell-option-card" type="button">
-              <div class="option-figure">📱</div>
-              <div class="option-text">Broken/scratch on device screen</div>
-            </button>
-            <button class="sell-option-card" type="button">
-              <div class="option-figure">🖥️</div>
-              <div class="option-text">Dead Spot/visible line and discoloration on screen</div>
-            </button>
-            <button class="sell-option-card" type="button">
-              <div class="option-figure">📲</div>
-              <div class="option-text">Scratch/Dent on device body</div>
-            </button>
-            <button class="sell-option-card" type="button">
-              <div class="option-figure">📷</div>
-              <div class="option-text">Device panel missing/broken</div>
-            </button>
-          </div>
+          <div id="screenDefectQuestions" class="screen-defect-question-list"></div>
 
-          <button class="btn btn-coral btn-wide" onclick="window.location.href='done.html'">Continue →</button>
+          <button id="screenContinueBtn" class="btn btn-coral btn-wide" type="button" disabled>Continue →</button>
         </div>
 
         <div class="sell-panel-right">
@@ -53,6 +36,13 @@
               <div class="device-price">₹2,310</div>
               <div class="device-seen">11860+ already sold on SmartSwap</div>
             </div>
+          </div>
+          <div class="device-evaluation" aria-live="polite">
+            <h3>SmartSwap Phone Snapshot</h3>
+            <h4>Phone Basics</h4>
+            <ul><li>Able to Make and Receive Calls</li><li>Yes</li><li>Dead Spot/Visible line and Discoloration on screen</li></ul>
+            <h4>Selected Screen Details</h4>
+            <ul id="screenEvaluationList"><li>Select one option in each section</li></ul>
           </div>
         </div>
       </div>
@@ -68,6 +58,6 @@
   <script src="../js/firebase-data.js"></script>
   <script src="../js/site-config.js"></script>
   <script src="../js/main.js"></script>
-  <script src="../js/sell-flow.js"></script>
+  <script src="../js/sell-flow.js?v=20260910sellsummary1"></script>
 </body>
 </html>

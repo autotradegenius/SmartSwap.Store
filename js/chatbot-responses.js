@@ -16,7 +16,7 @@ window.smartSwapContact = {
   call: '+91 9718655625',
   whatsapp: '+91 9718655625',
   email: 'smartswap.store@gmail.com',
-  address: 'Shop No. 3, Duggal Colony, Gat No. 1, Deoli Road, New Delhi - 110080',
+  address: 'Shop No. 3, Duggal Colony Gate No. 1, Near Burger King, Deoli Main Road, New Delhi - 110080',
   instagram: 'SmartSwap.Store',
   facebook: 'SmartSwap.Store'
 };
@@ -152,10 +152,10 @@ window.smartSwapChatbotResponses = {
   complaint: "Sorry to hear you're facing an issue! Please share the details on WhatsApp: +91 9718655625 and our team will personally look into it and get back to you.",
 
   // ---------- CONTACT / LOCATION / HOURS ----------
-  contact: "You can reach SmartSwap.Store on WhatsApp: +91 9718655625 or email: smartswap.store@gmail.com. Our store is at Shop No. 3, Duggal Colony, Gat No. 1, Deoli Road, New Delhi - 110080.",
+  contact: "You can reach SmartSwap.Store on WhatsApp: +91 9718655625 or email: smartswap.store@gmail.com. Our store is at Shop No. 3, Duggal Colony Gate No. 1, Near Burger King, Deoli Main Road, New Delhi - 110080.",
   email_contact: "Our email is smartswap.store@gmail.com. You can also reach us on WhatsApp at +91 9718655625.",
   social_media: "Find us on Instagram and Facebook as SmartSwap.Store. You can also WhatsApp us at +91 9718655625.",
-  location: "Our store address is Shop No. 3, Duggal Colony, Gat No. 1, Deoli Road, New Delhi - 110080. You can confirm directions on WhatsApp: +91 9718655625.",
+  location: "Our store address is Shop No. 3, Duggal Colony Gate No. 1, Near Burger King, Deoli Main Road, New Delhi - 110080. You can confirm directions on WhatsApp: +91 9718655625.",
   hours: "Ping us on WhatsApp (+91 9718655625) and we'll confirm today's hours right away.",
   working_days: "We're open all days except major holidays — for exact working days this week, message us on WhatsApp: +91 9718655625.",
 

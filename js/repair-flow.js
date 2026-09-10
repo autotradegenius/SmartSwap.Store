@@ -1,8 +1,11 @@
 (function () {
   const params = new URLSearchParams(window.location.search);
   const selectedService = params.get('service') || 'Screen Replacement';
-  const services = ['Screen Replacement', 'Battery Replacement', 'Camera Repair', 'Charging Port Fix', 'Water Damage Recovery', 'Software & Performance'];
-  const defaultPrices = {'Screen Replacement':1499,'Battery Replacement':999,'Camera Repair':1199,'Charging Port Fix':799,'Water Damage Recovery':1999,'Software & Performance':499};
+  const defaultServices = ['Screen Replacement', 'Battery Replacement', 'Camera Repair', 'Charging Port Fix', 'Water Damage Recovery', 'Software & Performance'];
+  const serviceSeeds = defaultServices.map(service => ({id:`repair-service-${service.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, service, isService:true}));
+  const configuredServices = window.swapioData?.readCatalog ? window.swapioData.readCatalog('repair', serviceSeeds, false).filter(item => item.isService !== false && !item.deleted) : serviceSeeds;
+  const services = configuredServices.map(item => item.service);
+  const defaultPrices = Object.fromEntries(configuredServices.map(item => [item.service, Number(item.price || 0)]));
   const repairCatalog = (() => { try { return JSON.parse(localStorage.getItem('swapioRepairCatalog') || '[]'); } catch (error) { return []; } })();
   const models = [];
   const addModels = values => (Array.isArray(values) ? values : []).forEach(model => {
@@ -26,8 +29,8 @@
   document.getElementById('repairServiceBreadcrumb').textContent = selectedService;
   issueSummary.value = selectedService;
 
-  function priceFor(service, modelName) {
-    const match = repairCatalog.find(item => String(item.service).toLowerCase() === service.toLowerCase() && String(item.model).toLowerCase() === String(modelName).toLowerCase());
+  function priceFor(service, brand, modelName) {
+    const match = repairCatalog.find(item => String(item.service).toLowerCase() === service.toLowerCase() && String(item.brand).toLowerCase() === String(brand).toLowerCase() && String(item.model).toLowerCase() === String(modelName).toLowerCase());
     return match && Number(match.price) > 0 ? Number(match.price) : defaultPrices[service] || 0;
   }
   function modelOptions(selectedBrand) {
@@ -43,7 +46,7 @@
   }
   function updateLine(line) {
     const part = line.querySelector('[data-repair-part]').value;
-    const price = brandSelect.value && modelSelect.value && part ? priceFor(part, modelSelect.value) : 0;
+    const price = brandSelect.value && modelSelect.value && part ? priceFor(part, brandSelect.value, modelSelect.value) : 0;
     line.querySelector('[data-repair-price]').textContent = price ? `₹${price.toLocaleString('en-IN')}` : '';
   }
   function updateTotal() {
@@ -51,7 +54,7 @@
       const brand = brandSelect.value;
       const model = modelSelect.value;
       const part = line.querySelector('[data-repair-part]').value;
-      return {brand, model, part, price: brand && model && part ? priceFor(part, model) : 0};
+      return {brand, model, part, price: brand && model && part ? priceFor(part, brand, model) : 0};
     }).filter(item => item.brand && item.model && item.part);
     const total = selected.reduce((sum, item) => sum + item.price, 0);
     totalLabel.textContent = selected.length ? `₹${total.toLocaleString('en-IN')}` : '';

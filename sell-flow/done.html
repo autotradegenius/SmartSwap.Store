@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/style.css?v=20260908mobile" />
 </head>
 <body data-page="sell">
   <div id="site-header"></div>
@@ -28,6 +28,7 @@
             <small id="customerPhoneError" style="display:block;color:#d94b35;margin-top:6px;" hidden>Please enter a valid 10-digit number.</small>
           </div>
           <button id="sellNowButton" class="btn btn-coral" type="button">Confirm and submit</button>
+          <div id="doneSellSummary" class="sell-summary-panel" style="max-width:420px;margin:24px auto 0;text-align:left;"></div>
           <button id="doneHomeButton" class="btn btn-ghost" type="button" onclick="window.location.href='../index.html'">Back to Home</button>
         </div>
       </div>
@@ -38,6 +39,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/firebase-auth.js"></script>
   <script src="../js/firebase-data.js"></script>
@@ -51,20 +53,42 @@
     const offer = Number(doneParams.get('offer') || 0);
     const sellButton = document.getElementById('sellNowButton');
     const homeButton = document.getElementById('doneHomeButton');
+    const contactField = document.getElementById('customerContactField');
     const phoneInput = document.getElementById('customerPhone');
     const phoneError = document.getElementById('customerPhoneError');
+    const savedPhone = sessionStorage.getItem('smartSwapCustomerPhone') || '';
+    let savedSellState = {};
+    try { savedSellState = JSON.parse(sessionStorage.getItem('smartSwapSellState') || '{}'); } catch (error) { savedSellState = {}; }
+    const summaryItems = [
+      ['Phone', [savedSellState.brand, savedSellState.modelId, savedSellState.memory].filter(Boolean).join(' ')],
+      ['Screen details', Object.values(savedSellState.screenDefectAnswers || {})],
+      ['Body details', savedSellState.bodyDefect],
+      ['Functional issues', (savedSellState.problemDetails || []).filter(item => item.answer === 'No').map(item => item.label)],
+      ['Accessories included', (savedSellState.accessoryDetails || []).filter(item => item.answer === 'Yes').map(item => item.label)]
+    ];
+    document.getElementById('doneSellSummary').innerHTML = `<h3>SmartSwap Sell Summary</h3>${summaryItems.filter(([, values]) => Array.isArray(values) ? values.length : values).map(([title, values]) => `<section><h4>${title}</h4><ul>${(Array.isArray(values) ? values : [values]).map(value => `<li>${value}</li>`).join('')}</ul></section>`).join('')}`;
+    if (/^\d{10}$/.test(savedPhone)) {
+      contactField.hidden = true;
+      phoneInput.value = savedPhone;
+    }
 
+    const offerEl = document.getElementById('doneOffer');
     if (isDamaged) {
       document.getElementById('doneMessage').textContent = `Confirm your damaged ${brand || 'phone'} ${memory} sale request.`;
-      const offerEl = document.getElementById('doneOffer');
       offerEl.textContent = `Estimated damaged-phone offer: ₹${offer.toLocaleString('en-IN')}`;
       offerEl.hidden = false;
       homeButton.hidden = true;
+    } else {
+      const normalOffer = Number(savedSellState.finalPrice || 0);
+      if (normalOffer > 0) {
+        offerEl.textContent = `Current offer: ₹${normalOffer.toLocaleString('en-IN')}`;
+        offerEl.hidden = false;
+      }
     }
 
     sellButton.addEventListener('click', async () => {
-      const phone = phoneInput.value.replace(/\D/g, '');
-      if (!/^[6-9]\d{9}$/.test(phone)) {
+      const phone = (savedPhone || phoneInput.value).replace(/\D/g, '');
+      if (!/^\d{10}$/.test(phone)) {
         phoneError.hidden = false;
         phoneInput.focus();
         return;
@@ -85,19 +109,21 @@
       submission.createdAt = Date.now();
       try {
         if (!window.swapioData?.saveCustomerSubmission) throw new Error('Submission service is unavailable.');
-        await window.swapioData.saveCustomerSubmission(submission);
-        document.getElementById('doneMessage').textContent = 'Your phone sale request has been sent to SmartSwap.Store.';
-        sellButton.textContent = 'Request Sent';
+        const savedRequest = await window.swapioData.saveCustomerSubmission(submission);
+        document.getElementById('doneMessage').textContent = `Request ${savedRequest.requestNumber} submitted successfully.`;
+        sellButton.textContent = 'Request Submitted';
+        sessionStorage.removeItem('smartSwapCustomerPhone');
       } catch (error) {
-        const pendingKey = isDamaged ? 'swapioDamagedSubmissions' : 'swapioSellSubmissions';
-        const pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
-        pending.unshift(submission);
-        localStorage.setItem(pendingKey, JSON.stringify(pending));
-        document.getElementById('doneMessage').textContent = 'Request saved on this device. Please contact SmartSwap.Store to complete the sale.';
+        console.error('Sell request queued for Firebase retry.', error);
+        document.getElementById('doneMessage').textContent = `Request ${submission.requestNumber} is saved securely and will sync automatically.`;
         sellButton.disabled = false;
-        sellButton.textContent = 'Try Again';
+        sellButton.textContent = 'Request Saved';
       }
     });
+    if (/^\d{10}$/.test(savedPhone)) {
+      document.getElementById('doneMessage').textContent = 'Submitting your sell request...';
+      setTimeout(() => sellButton.click(), 0);
+    }
   </script>
 </body>
 </html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tell us about your device body | SmartSwap.Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="stylesheet" href="../css/style.css?v=20260908mobile" />
+</head>
+<body data-page="sell">
+  <div id="site-header"></div>
+
+  <main class="sell-flow-page">
+    <section class="sell-flow-wrap wrap">
+      <div class="sell-page-breadcrumb">Home &nbsp;&gt;&nbsp; Sell Old Mobile Phone &nbsp;&gt;&nbsp; Device body</div>
+      <div class="sell-main-panel" style="grid-template-columns:1.6fr .9fr;">
+        <div class="sell-panel-left">
+          <div class="sell-step-header">Tell us more about your device's body</div>
+          <p class="sell-step-subtitle">Select the option that best matches your device</p>
+          <div id="bodyDefectQuestions" class="sell-option-grid" style="grid-template-columns:repeat(2,minmax(160px,1fr));"></div>
+          <button id="bodyContinueBtn" class="btn btn-coral btn-wide" type="button" disabled>Continue -></button>
+        </div>
+        <div class="sell-panel-right">
+          <div class="device-card-selected">
+            <div class="device-thumb-wrap"><img id="sellFlowSummaryImage" src="https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80" alt="Phone" /></div>
+            <div class="device-meta-text"><div class="device-name">Phone</div><div class="device-seen">SmartSwap phone summary</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/firebase-auth.js"></script>
+  <script src="../js/firebase-data.js"></script>
+  <script src="../js/site-config.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/sell-flow.js?v=20260910sellsummary1"></script>
+</body>
+</html>

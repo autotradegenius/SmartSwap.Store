@@ -159,6 +159,15 @@
     return `${brand}:${normalizeCatalogValue(name)}`;
   }
 
+  function normalizeSellModelName(model) {
+    const brand = String(model.brand || '').trim();
+    const name = String(model.name || '').trim();
+    if (!brand || !name) return model;
+    const prefix = new RegExp(`^${brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s-]+`, 'i');
+    const modelName = name.replace(prefix, '').trim();
+    return modelName ? {...model, name: `${brand} ${modelName}`} : model;
+  }
+
   function getSellModels() {
     let catalog = [];
     try {
@@ -175,16 +184,35 @@
     }
 
     const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
+    const codeCatalog = Array.isArray(window.DEFAULT_MODELS) && window.DEFAULT_MODELS.length ? window.DEFAULT_MODELS : BASE_MODELS;
+    const naturalNameOrder = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    const sortModels = models => models
+      .filter(model => model && model.name && model.brand && !model.hidden)
+      .sort((first, second) => {
+        const brandDifference = naturalNameOrder.compare(String(first.brand || ''), String(second.brand || ''));
+        return brandDifference || naturalNameOrder.compare(String(first.name || ''), String(second.name || ''));
+      });
+    if (window.swapioData?.readCatalog) {
+      const canonicalSeeds = [...codeCatalog, ...catalog, ...phoneCatalog];
+      const mergedModels = window.swapioData.readCatalog('sell', canonicalSeeds, false).map(model => {
+        const normalizedName = String(model.name || '').trim();
+        const normalizedBrand = /^poco\b/i.test(normalizedName) ? 'Poco' : model.brand;
+        const override = overrides[model.id] || {};
+        return normalizeSellModelName({...model, ...override, brand: /^poco\b/i.test(String(override.name || normalizedName)) ? 'Poco' : (override.brand || normalizedBrand)});
+      });
+      return sortModels(mergedModels);
+    }
     const merged = new Map();
-    [...catalog, ...phoneCatalog, ...BASE_MODELS, ...(window.DEFAULT_MODELS || [])].forEach(model => {
+    [...codeCatalog, ...catalog, ...phoneCatalog].forEach(model => {
       if (!model || !model.name || !model.brand) return;
       const normalizedName = String(model.name).trim();
       const normalizedBrand = /^poco\b/i.test(normalizedName) ? 'Poco' : model.brand;
-      const normalizedModel = { ...model, brand: normalizedBrand, hidden: Boolean(model.hidden) };
+      const normalizedModel = normalizeSellModelName({ ...model, brand: normalizedBrand, hidden: Boolean(model.hidden) });
       const override = overrides[normalizedModel.id];
       if (override) Object.assign(normalizedModel, override, { brand: /^poco\b/i.test(String(override.name || normalizedName)) ? 'Poco' : (override.brand || normalizedBrand) });
-      const key = getCatalogModelKey(normalizedModel);
-      if (!merged.has(key)) merged.set(key, normalizedModel);
+      const cleanModel = normalizeSellModelName(normalizedModel);
+      const key = getCatalogModelKey(cleanModel);
+      if (!merged.has(key)) merged.set(key, cleanModel);
     });
 
     const normalizedCatalog = Array.from(merged.values());
@@ -192,14 +220,30 @@
       localStorage.setItem('swapioSellCatalog', JSON.stringify(normalizedCatalog));
     }
 
-    return normalizedCatalog.filter(model => !model.hidden);
+    return sortModels(normalizedCatalog);
   }
 
   function getModelFromQuery() {
     const params = new URLSearchParams(window.location.search);
     const slug = params.get('model');
-    const model = getSellModels().find(item => item.id === slug);
-    return model || getSellModels()[0];
+    const sellModels = getSellModels();
+    if (slug) {
+      const model = sellModels.find(item => item.id === slug);
+      if (model) return model;
+    }
+
+    try {
+      const savedState = JSON.parse(sessionStorage.getItem('smartSwapSellState') || '{}');
+      const storedModelId = savedState.modelId;
+      if (storedModelId) {
+        const savedModel = sellModels.find(item => item.id === storedModelId);
+        if (savedModel) return savedModel;
+      }
+    } catch (error) {
+      // ignore and keep route-safe fallback
+    }
+
+    return null;
   }
 
   function getBrandFromQuery() {
@@ -226,7 +270,7 @@
     const button = document.querySelector('.btn-coral-lg');
     if (button) {
       button.onclick = () => {
-        const nextUrl = `condition.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}`;
+        const nextUrl = `screen.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}`;
         window.location.href = nextUrl;
       };
     }
@@ -294,17 +338,28 @@
   function syncSummaryCard() {
     const model = getModelFromQuery();
     const card = document.querySelector('.device-card-selected');
-    if (!card) return;
+    if (!card || !model) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const selectedMemory = params.get('memory') || model.spec || getModelStorageOptions(model)[0] || '64 GB';
+    const activePrice = getModelStoragePrice(model, selectedMemory);
 
     const img = card.querySelector('img');
     const name = card.querySelector('.device-name');
     const price = card.querySelector('.device-price');
     const seen = card.querySelector('.device-seen');
 
-    if (img) img.src = model.image || img.src;
-    if (name) name.textContent = `${model.name} (${model.spec})`;
-    if (price) price.textContent = formatPrice(model.price);
-    if (seen) seen.textContent = `${(Number(model.price) > 10000 ? '11860+' : '1600+') } already sold on SmartSwap`;
+    if (img) {
+      img.src = model.image || img.src;
+      img.alt = model.name;
+    }
+    if (name) name.textContent = `${model.name} (${selectedMemory})`;
+    if (price) {
+      price.textContent = '';
+      price.style.visibility = 'hidden';
+      price.style.display = 'none';
+    }
+    if (seen) seen.textContent = `${Math.max(1200, activePrice + 1800).toLocaleString('en-IN')}+ already sold on SmartSwap`;
   }
 
   const STORAGE_MEMORY_ORDER = ['16 GB', '32 GB', '64 GB', '128 GB', '256 GB', '512 GB'];
@@ -375,7 +430,7 @@
       const exact = getModelStoragePrice(model, storage);
       priceEl.textContent = `₹${new Intl.NumberFormat('en-IN').format(exact)}`;
       metaEl.textContent = `${new Intl.NumberFormat('en-IN').format(Math.max(1200, exact + 1800))}+ already sold on SmartSwap`;
-      const nextUrl = `condition.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}&memory=${encodeURIComponent(storage)}${damageQuery}`;
+      const nextUrl = `screen.html?model=${encodeURIComponent(model.id)}&brand=${encodeURIComponent(model.brand)}&memory=${encodeURIComponent(storage)}${damageQuery}`;
       button.onclick = () => { window.location.href = nextUrl; };
       button.dataset.storage = storage;
     }
@@ -414,18 +469,73 @@
       const current = getSellState();
       const nextState = { ...current, ...partialState };
       sessionStorage.setItem('smartSwapSellState', JSON.stringify(nextState));
+      window.dispatchEvent(new Event('smartSwapSellStateUpdated'));
       return nextState;
     } catch (error) {
       return partialState;
     }
   }
 
-  function calculateSellPrice(basePrice, conditionAnswers, problemAnswers) {
+  function renderSellSummaryPanel() {
+    const host = document.querySelector('.sell-panel-right') || document.querySelector('.sell-main-panel');
+    if (!host) return;
+
+    const state = getSellState();
+    const model = getSellModels().find(item => item.id === state.modelId) || getModelFromQuery();
+    const screen = Object.values(state.screenDefectAnswers || {});
+    const problems = Array.isArray(state.problemDetails) ? state.problemDetails.filter(item => item.answer === 'No').map(item => item.label) : [];
+    const accessories = Array.isArray(state.accessoryDetails) ? state.accessoryDetails.filter(item => item.answer === 'Yes').map(item => item.label) : [];
+
+    const list = (title, values) => {
+      const items = (Array.isArray(values) ? values : [values]).filter(Boolean);
+      return items.length ? `<section><h4>${title}</h4><ul>${items.map(item => `<li>${item}</li>`).join('')}</ul></section>` : '';
+    };
+
+    const phoneBasics = [
+      'Able to Make and Receive Calls',
+      'Yes',
+      'Dead Spot/Visible line and Discoloration on screen'
+    ];
+
+    const deviceCard = host.querySelector('.device-card-selected');
+    const existingEvaluation = host.querySelector('.device-evaluation');
+    if (!deviceCard) return;
+
+    if (existingEvaluation && existingEvaluation.parentElement !== deviceCard) {
+      deviceCard.appendChild(existingEvaluation);
+    }
+
+    const evaluationCard = deviceCard.querySelector('.device-evaluation') || document.createElement('div');
+    evaluationCard.className = 'device-evaluation sell-summary-panel';
+    evaluationCard.setAttribute('aria-live', 'polite');
+    evaluationCard.innerHTML = `<h3>SmartSwap Phone Snapshot</h3>`
+      + `<section><h4>Phone Basics</h4><ul>${phoneBasics.map(item => `<li>${item}</li>`).join('')}</ul></section>`
+      + `<section><h4>Selected Screen Details</h4><ul>${screen.length ? screen.map(item => `<li>${item}</li>`).join('') : '<li>Select one option in each section</li>'}</ul></section>`
+      + `<h3>SmartSwap Sell Summary</h3>`
+      + list('Phone', [model?.name || state.modelId, state.memory])
+      + list('Screen details', screen)
+      + list('Body details', state.bodyDefect)
+      + list('Functional issues', problems)
+      + list('Accessories included', accessories);
+
+    if (!deviceCard.contains(evaluationCard)) {
+      deviceCard.appendChild(evaluationCard);
+    }
+
+    const img = deviceCard.querySelector('img');
+    if (img && model?.image) {
+      img.src = model.image;
+      img.alt = model.name;
+    }
+  }
+
+  function calculateSellPrice(basePrice, conditionAnswers, problemAnswers, screenBodyAnswers = []) {
     const conditionCount = conditionAnswers.filter(answer => answer === 'No').length;
-    const problemCount = problemAnswers.filter(answer => answer === 'Yes').length;
+    const problemCount = problemAnswers.filter(answer => answer === 'No').length;
     const conditionReduction = Math.min(conditionCount * 0.09, 0.36);
     const problemReduction = Math.min(problemCount * 0.12, 0.42);
-    const reduction = Math.min(conditionReduction + problemReduction, 0.68);
+    const screenBodyReduction = Math.min(screenBodyAnswers.filter(answer => answer === 'Yes').length * 0.08, 0.28);
+    const reduction = Math.min(conditionReduction + problemReduction + screenBodyReduction, 0.76);
     return Math.max(0, Math.round(basePrice * (1 - reduction)));
   }
 
@@ -452,6 +562,7 @@
   function setupConditionFlow() {
     const params = new URLSearchParams(window.location.search);
     const model = getModelFromQuery();
+    if (!model) return;
     const selectedMemory = params.get('memory') || '64 GB';
     const basePrice = getModelMemoryPrice(model, selectedMemory);
     const deviceName = document.getElementById('conditionDeviceName');
@@ -469,7 +580,8 @@
       const conditionAnswers = Array.from(questions).map(question => question.dataset.answer || 'No');
       const savedState = getSellState();
       const problemAnswers = Array.isArray(savedState.problemAnswers) ? savedState.problemAnswers : [];
-      const finalPrice = calculateSellPrice(basePrice, conditionAnswers, problemAnswers);
+      const screenBodyAnswers = Array.from(document.querySelectorAll('[data-screen-body]')).map(card => card.classList.contains('selected') ? 'Yes' : 'No');
+      const finalPrice = calculateSellPrice(basePrice, conditionAnswers, problemAnswers, screenBodyAnswers);
 
       saveSellState({
         modelId: model.id,
@@ -477,6 +589,7 @@
         memory: selectedMemory,
         conditionAnswers,
         problemAnswers,
+        screenBodyAnswers,
         finalPrice,
         basePrice
       });
@@ -509,6 +622,19 @@
       });
 
       setAnswer('No');
+    });
+
+    const savedScreenBodyAnswers = Array.isArray(getSellState().screenBodyAnswers) ? getSellState().screenBodyAnswers : [];
+    document.querySelectorAll('[data-screen-body]').forEach((card, index) => {
+      const initiallySelected = savedScreenBodyAnswers[index] === 'Yes';
+      card.classList.toggle('selected', initiallySelected);
+      card.setAttribute('aria-pressed', String(initiallySelected));
+      card.addEventListener('click', () => {
+        const selected = !card.classList.contains('selected');
+        card.classList.toggle('selected', selected);
+        card.setAttribute('aria-pressed', String(selected));
+        updatePriceFromAnswers();
+      });
     });
 
     if (imgEl) imgEl.src = model.image || imgEl.src;
@@ -545,6 +671,7 @@
 
     const params = new URLSearchParams(window.location.search);
     const model = getModelFromQuery();
+    if (!model) return;
     const selectedMemory = params.get('memory') || '64 GB';
     const basePrice = getModelMemoryPrice(model, selectedMemory);
     const problemList = document.getElementById('problemChoiceList');
@@ -552,18 +679,19 @@
     const pageTitle = document.getElementById('problemPageTitle');
     const summaryName = document.getElementById('problemSummaryName');
     const summaryPrice = document.getElementById('problemSummaryPrice');
+    const savedState = getSellState();
 
     if (pageTitle) pageTitle.textContent = 'Functional or Physical Problems';
 
     const problems = [
-      { id: 'front-camera', label: 'Front Camera not working', icon: 'camera' },
-      { id: 'back-camera', label: 'Back Camera not working', icon: 'camera' },
-      { id: 'volume', label: 'Volume Button not working', icon: 'speaker' },
-      { id: 'fingerprint', label: 'Finger Touch not working', icon: 'default' },
-      { id: 'wifi', label: 'WiFi not working', icon: 'wifi' },
-      { id: 'battery', label: 'Battery Faulty', icon: 'battery' },
-      { id: 'speaker', label: 'Speaker Faulty', icon: 'speaker' },
-      { id: 'power-button', label: 'Power Button not working', icon: 'power' }
+      { id: 'front-camera', label: 'Front Camera working', icon: 'camera' },
+      { id: 'back-camera', label: 'Back Camera working', icon: 'camera' },
+      { id: 'volume', label: 'Volume Button working', icon: 'speaker' },
+      { id: 'fingerprint', label: 'Finger Touch working', icon: 'default' },
+      { id: 'wifi', label: 'WiFi working', icon: 'wifi' },
+      { id: 'battery', label: 'Battery working', icon: 'battery' },
+      { id: 'speaker', label: 'Speaker working', icon: 'speaker' },
+      { id: 'power-button', label: 'Power Button working', icon: 'power' }
     ];
 
     if (!problemList) return;
@@ -594,7 +722,8 @@
 
       const conditionAnswers = Array.from(document.querySelectorAll('.sell-step-question')).map(question => question.dataset.answer || 'No');
       const problemAnswers = Array.from(cards).map(card => card.dataset.value || 'Yes');
-      const finalPrice = calculateSellPrice(basePrice, conditionAnswers, problemAnswers);
+      const screenBodyAnswers = Array.isArray(savedState.screenBodyAnswers) ? savedState.screenBodyAnswers : [];
+      const finalPrice = calculateSellPrice(basePrice, conditionAnswers, problemAnswers, screenBodyAnswers);
 
       saveSellState({
         modelId: model.id,
@@ -602,6 +731,9 @@
         memory: selectedMemory,
         conditionAnswers,
         problemAnswers,
+        problemDetails: problems.map((item, index) => ({label: item.label, answer: problemAnswers[index]})),
+        problemAnswerMode: 'working-status-v1',
+        screenBodyAnswers,
         finalPrice,
         basePrice
       });
@@ -644,6 +776,7 @@
 
     const params = new URLSearchParams(window.location.search);
     const model = getModelFromQuery();
+    if (!model) return;
     const selectedMemory = params.get('memory') || '64 GB';
     const basePrice = getModelMemoryPrice(model, selectedMemory);
     const accessoryList = document.getElementById('accessoryChoiceList');
@@ -694,7 +827,8 @@
         brand: model.brand,
         memory: selectedMemory,
         basePrice,
-        accessoryAnswers: Array.from(cards).map(card => card.dataset.value || 'Yes')
+        accessoryAnswers: Array.from(cards).map(card => card.dataset.value || 'Yes'),
+        accessoryDetails: accessories.map((item, index) => ({label: item.label, answer: Array.from(cards)[index]?.dataset.value || 'Yes'}))
       });
     };
 
@@ -724,8 +858,140 @@
     }
   }
 
+  function setupScreenFlow() {
+    const questionList = document.getElementById('screenDefectQuestions');
+    const continueBtn = document.getElementById('screenContinueBtn');
+    const evaluationList = document.getElementById('screenEvaluationList');
+    if (!questionList || !continueBtn) return;
+
+    const questions = [
+      {id: 'spots', title: '1. Dead Pixels/Spots on Screen', subtitle: "Check your device's screen for visible spots", options: [
+        {label: 'Large/ heavy visible spots on screen', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/6086c22f9a02e.png?dpr=2&w=128'},
+        {label: '3 or more minor spots on screen', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/6086c27675f5e.png?dpr=2&w=128'},
+        {label: '1-2 minor spots on screen', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/6086c2d887d97.png?dpr=2&w=128'},
+        {label: 'No spots on screen', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/6086c312dc82b.png?dpr=2&w=128'}
+      ]},
+      {id: 'lines', title: '2. Visible Lines on Screen', subtitle: "Check your device's screen for visible lines", options: [
+        {label: 'Visible line(s) on display', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/6086c4256a067.png?dpr=2&w=128'},
+        {label: 'Display faded along edges', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/6086c3f480850.png?dpr=2&w=128'},
+        {label: 'No line(s) on Display', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/6086c459b94a7.png?dpr=2&w=128'}
+      ]},
+      {id: 'discoloration', title: '3. Discoloration on Screen', subtitle: "Check your device's screen for discoloration", options: [
+        {label: 'Major Discoloration', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/Major_Discolouration_Icon.png?dpr=2&w=128'},
+        {label: 'Minor Discoloration', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/Minor_Discolouration_Icon.png?dpr=2&w=128'},
+        {label: 'No Discoloration', image: 'https://s3ng.cashify.in/cashify/productLinePartVariation/img/xhdpi/No_Discolouration_Icon.png?dpr=2&w=128'}
+      ]}
+    ];
+    const savedAnswers = getSellState().screenDefectAnswers || {};
+    questionList.innerHTML = questions.map(question => `
+      <div class="screen-defect-question" data-screen-question="${question.id}">
+        <strong>${question.title}</strong><small>${question.subtitle}</small>
+        <div class="screen-defect-options">
+          ${question.options.map(option => `<button type="button" class="sell-option-card" data-screen-answer="${option.label}"><div class="option-figure"><img src="${option.image}" alt="${option.label}" loading="lazy"></div><div class="option-text">${option.label}</div></button>`).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    const updateState = () => {
+      const answers = {};
+      let complete = true;
+      questionList.querySelectorAll('[data-screen-question]').forEach(question => {
+        const selected = question.querySelector('.selected');
+        if (!selected) complete = false;
+        answers[question.dataset.screenQuestion] = selected?.dataset.screenAnswer || '';
+      });
+      const screenBodyAnswers = questions.map(question => {
+        const answer = answers[question.id] || '';
+        return answer && !answer.toLowerCase().startsWith('no ') ? 'Yes' : 'No';
+      });
+      if (evaluationList) {
+        const selectedLabels = questions.map(question => answers[question.id]).filter(Boolean);
+        evaluationList.innerHTML = selectedLabels.length
+          ? selectedLabels.map(label => `<li>${label}</li>`).join('')
+          : '<li>Select one option in each section</li>';
+      }
+      saveSellState({screenDefectAnswers: answers, screenBodyAnswers});
+      continueBtn.disabled = !complete;
+      continueBtn.setAttribute('aria-disabled', String(!complete));
+    };
+
+    questionList.querySelectorAll('[data-screen-question]').forEach(question => {
+      const saved = savedAnswers[question.dataset.screenQuestion];
+      question.querySelectorAll('[data-screen-answer]').forEach(button => {
+        if (button.dataset.screenAnswer === saved) button.classList.add('selected');
+        button.addEventListener('click', () => {
+          question.querySelectorAll('[data-screen-answer]').forEach(item => item.classList.remove('selected'));
+          button.classList.add('selected');
+          updateState();
+        });
+      });
+    });
+    updateState();
+
+    continueBtn.addEventListener('click', () => {
+      if (continueBtn.disabled) return;
+      const query = new URLSearchParams(window.location.search);
+      window.location.href = `body.html?${query.toString()}`;
+    });
+  }
+
+  function setupBodyFlow() {
+    const questionList = document.getElementById('bodyDefectQuestions');
+    const continueBtn = document.getElementById('bodyContinueBtn');
+    if (!questionList || !continueBtn) return;
+
+    const options = [
+      {id: 'body-scratch', label: 'Scratch / dent on device body', icon: 'spots-few'},
+      {id: 'body-panel', label: 'Device panel missing / broken', icon: 'discoloration-major'},
+      {id: 'body-back', label: 'Back panel damaged', icon: 'faded'},
+      {id: 'body-clear', label: 'No damage on device body', icon: 'clear'}
+    ];
+    const saved = getSellState().bodyDefect || '';
+    questionList.innerHTML = options.map(option => `
+      <button type="button" class="sell-option-card${saved === option.id ? ' selected' : ''}" data-body-answer="${option.id}">
+        <div class="option-figure">${buildScreenDefectIcon(option.icon)}</div>
+        <div class="option-text">${option.label}</div>
+      </button>
+    `).join('');
+    const update = () => {
+      const selected = questionList.querySelector('.selected');
+      saveSellState({bodyDefect: selected?.dataset.bodyAnswer || ''});
+      continueBtn.disabled = !selected;
+      continueBtn.setAttribute('aria-disabled', String(!selected));
+    };
+    questionList.querySelectorAll('[data-body-answer]').forEach(button => {
+      button.addEventListener('click', () => {
+        questionList.querySelectorAll('[data-body-answer]').forEach(item => item.classList.remove('selected'));
+        button.classList.add('selected');
+        update();
+      });
+    });
+    update();
+    continueBtn.addEventListener('click', () => {
+      if (continueBtn.disabled) return;
+      const query = new URLSearchParams(window.location.search);
+      window.location.href = `problems.html?${query.toString()}`;
+    });
+  }
+
+  function buildScreenDefectIcon(type) {
+    const marks = {
+      'spots-heavy': '<circle cx="35" cy="35" r="5" fill="#ff5d3a"/><circle cx="51" cy="49" r="6" fill="#ff5d3a"/><circle cx="43" cy="61" r="4" fill="#ff5d3a"/>',
+      'spots-many': '<circle cx="34" cy="35" r="3" fill="#ff9b67"/><circle cx="46" cy="42" r="3" fill="#ff9b67"/><circle cx="53" cy="54" r="3" fill="#ff9b67"/><circle cx="37" cy="60" r="3" fill="#ff9b67"/>',
+      'spots-few': '<circle cx="45" cy="45" r="4" fill="#ff9b67"/><circle cx="52" cy="58" r="3" fill="#ff9b67"/>',
+      lines: '<path d="M34 22v48M45 22v48" stroke="#ff5d3a" stroke-width="3"/>',
+      faded: '<path d="M26 25h34M26 35h34M26 45h34M26 55h34" stroke="#b7c6ca" stroke-width="5" opacity=".7"/>',
+      'discoloration-major': '<path d="M25 25h40v40H25z" fill="#9fe7db"/><path d="M25 25l40 40M65 25L25 65" stroke="#ff5d3a" stroke-width="3"/>',
+      'discoloration-minor': '<path d="M27 27h36v36H27z" fill="#d8f4ef"/><circle cx="45" cy="45" r="10" fill="#9fe7db"/>',
+      clear: '<path d="M31 46l8 8 15-18" stroke="#1ac0b1" stroke-width="4" fill="none"/>'
+    };
+    return `<svg viewBox="0 0 80 80" aria-hidden="true"><rect x="20" y="8" width="40" height="64" rx="6" fill="#fff" stroke="#25313a" stroke-width="2.4"/><path d="M31 16h18M35 64h10" stroke="#25313a" stroke-width="2" stroke-linecap="round"/>${marks[type] || marks.clear}</svg>`;
+  }
+
   function setupLoginPage() {
     const params = new URLSearchParams(window.location.search);
+    const model = getModelFromQuery();
+    if (!model && params.get('damaged') !== '1') return;
     if (params.get('damaged') === '1') {
       const damagedBrand = params.get('brand') || 'Phone';
       const damagedMemory = params.get('memory') || '';
@@ -736,13 +1002,14 @@
       if (damagedPrice) damagedPrice.textContent = `₹${damagedOffer}`;
       return;
     }
-    const model = getModelFromQuery();
+    if (!model) return;
     const selectedMemory = params.get('memory') || '64 GB';
     const savedState = getSellState();
     const basePrice = getModelMemoryPrice(model, selectedMemory);
     const conditionAnswers = Array.isArray(savedState.conditionAnswers) ? savedState.conditionAnswers : [];
     const problemAnswers = Array.isArray(savedState.problemAnswers) ? savedState.problemAnswers : [];
-    const finalPrice = calculateSellPrice(basePrice, conditionAnswers, problemAnswers);
+    const screenBodyAnswers = Array.isArray(savedState.screenBodyAnswers) ? savedState.screenBodyAnswers : [];
+    const finalPrice = calculateSellPrice(basePrice, conditionAnswers, problemAnswers, screenBodyAnswers);
     const deviceName = document.getElementById('loginDeviceName');
     const loginPrice = document.getElementById('loginPrice');
     const deviceImage = document.getElementById('loginDeviceImage');
@@ -763,6 +1030,10 @@
     setupConditionFlow();
     setupProblemFlow();
     setupAccessoryFlow();
+    setupScreenFlow();
+    setupBodyFlow();
+    renderSellSummaryPanel();
+    window.addEventListener('smartSwapSellStateUpdated', renderSellSummaryPanel);
     setupLoginPage();
   }
 

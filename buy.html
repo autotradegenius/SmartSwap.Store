@@ -52,12 +52,13 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/firebase-auth.js"></script>
 <script src="js/firebase-data.js"></script>
 <script src="js/main.js?v=20260905"></script>
 <script src="js/brand-experience.js?v=20260905nokia3"></script>
-<script src="js/buy-master-catalog.js"></script>
+<script src="js/buy-master-catalog.js?v=20260910buyorder1"></script>
 <script>
 // ---------- phone icon svg (shared) ----------
 const phoneSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10.5 18.5h3" stroke-linecap="round"/></svg>`;
@@ -108,6 +109,15 @@ const adminBuyModels = catalogProducts.filter(product => product.visible !== fal
     image: product.photos?.[0] || ''
   }));
 buyModels.push(...adminBuyModels);
+if (window.swapioData?.readCatalog) {
+  const canonicalBuyModels = window.swapioData.readCatalog('buy', buyModels, false);
+  buyModels.length = 0;
+  buyModels.push(...canonicalBuyModels.map(model => ({
+    ...model,
+    now: model.now || `₹${Number(model.price || 0).toLocaleString('en-IN')}`,
+    was: model.was || (model.oldPrice ? `₹${Number(model.oldPrice).toLocaleString('en-IN')}` : '')
+  })));
+}
 const buyModelKeys = new Set();
 const uniqueBuyModels = buyModels.filter(model => !model.hidden).filter(model => {
   const brand = String(model.brand || model.spec || '').split('·').pop().trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -119,6 +129,16 @@ const uniqueBuyModels = buyModels.filter(model => !model.hidden).filter(model =>
 });
 buyModels.length = 0;
 buyModels.push(...uniqueBuyModels);
+const compareBuyModelNames = (firstName, secondName) => {
+  const first = String(firstName || ''), second = String(secondName || '');
+  const firstNumber = first.match(/\d+/), secondNumber = second.match(/\d+/);
+  if(firstNumber && secondNumber && Number(firstNumber[0]) !== Number(secondNumber[0])) return Number(firstNumber[0]) - Number(secondNumber[0]);
+  if(firstNumber && !secondNumber) return -1;
+  if(!firstNumber && secondNumber) return 1;
+  return first.localeCompare(second, undefined, {numeric:true, sensitivity:'base'});
+};
+const sortBuyModels = models => models.sort((first, second) => String(first.brand || '').localeCompare(String(second.brand || ''), undefined, {sensitivity:'base'}) || compareBuyModelNames(first.name, second.name));
+sortBuyModels(buyModels);
 const gradeClass = {Superb:'pill-green', Good:'pill-gold', Fair:'pill-coral'};
 const buyGrid = document.getElementById('buyGrid');
 const flashSaleGrid = document.getElementById('flashSaleGrid');
@@ -163,12 +183,15 @@ const buySearchInput = document.getElementById('buyModelSearch');
 const buySearchResults = document.getElementById('buySearchResults');
 const buySearchBox = document.getElementById('buySearchBox');
 function closeBuySearch(){ buySearchResults.hidden = true; buySearchResults.innerHTML = ''; }
+function escapeBuySearchText(value){
+  return String(value).replace(/[&<>"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[character]));
+}
 function renderBuySearchResults(){
   const query = buySearchInput.value.trim().toLowerCase();
   if (!query) { closeBuySearch(); return; }
   const searchModels = brandFilter ? visibleBuyModels : buyModels;
   const matches = searchModels.filter(model => `${model.name || ''} ${model.brand || ''} ${model.spec || ''}`.toLowerCase().includes(query));
-  buySearchResults.innerHTML = matches.length ? matches.map(model => `<button type="button" class="model-search-result" data-buy-search-id="${model.id}" data-buy-search-brand="${normalizeBuyBrand(model.brand || String(model.spec || '').split('·').pop())}"><span>${model.name}</span><small>${model.brand || String(model.spec || '').split('·').pop() || ''}</small></button>`).join('') : '<div class="model-search-empty">No buy phones found.</div>';
+  buySearchResults.innerHTML = matches.length ? matches.map(model => `<button type="button" class="model-search-result" data-buy-search-id="${model.id}" data-buy-search-brand="${normalizeBuyBrand(model.brand || String(model.spec || '').split('·').pop())}"><span>${model.name}</span><small>${model.brand || String(model.spec || '').split('·').pop() || ''}</small></button>`).join('') : `<div class="model-search-empty buy-search-fallback"><strong>No exact match for “${escapeBuySearchText(query)}”.</strong><span>It may be sold out or temporarily unavailable.</span><span>Coming soon.</span></div>`;
   buySearchResults.hidden = false;
 }
 if (buySearchInput) {
@@ -232,6 +255,7 @@ async function syncBuyCatalogFromCloud(){
       seen.add(key);
       return true;
     }));
+    sortBuyModels(buyModels);
     visibleBuyModels = brandFilter
       ? buyModels.filter(model => `${model.brand || ''} ${model.name} ${model.spec}`.toLowerCase().includes(brandFilter.toLowerCase()))
       : buyModels;
@@ -277,7 +301,7 @@ checkoutForm.addEventListener('submit', async event => {
   data.type = 'order'; data.model = selectedProduct.name; data.price = selectedProduct.price; data.payment = 'UPI'; data.paymentStatus = 'Payment pending verification'; data.createdAt = Date.now();
   if(!window.swapioData?.saveCustomerSubmission) { checkoutSubmittedMessage.textContent = 'Firebase is not configured yet. Please try again later.'; return; }
   try {
-    await window.swapioData.saveCustomerSubmission(data);
+    const savedRequest = await window.swapioData.saveCustomerSubmission(data);
   } catch(error) {
     checkoutSubmittedMessage.textContent = error.message || 'The order could not be saved. Please try again.';
     return;
@@ -286,7 +310,7 @@ checkoutForm.addEventListener('submit', async event => {
   orders.unshift(data); localStorage.setItem('swapioOrders', JSON.stringify(orders));
   checkoutForm.reset();
   checkoutEntry.hidden = true; checkoutSubmitted.hidden = false;
-  checkoutSubmittedMessage.textContent = 'Order submitted. Payment received for verification.';
+  checkoutSubmittedMessage.textContent = `Buy request ${savedRequest.requestNumber} submitted. Payment received for verification.`;
   let remainingSeconds = 10 * 60;
   clearInterval(checkoutTimerId);
   const updateTimer = () => { const minutes = Math.floor(remainingSeconds / 60); const seconds = String(remainingSeconds % 60).padStart(2, '0'); checkoutTimer.textContent = `Confirmation update in ${minutes}:${seconds}`; if(remainingSeconds <= 0){ clearInterval(checkoutTimerId); checkoutTimer.textContent = 'Our team is reviewing your payment.'; } remainingSeconds--; };

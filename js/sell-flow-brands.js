@@ -4,7 +4,7 @@
    ============================================================ */
 
 // Complete model list from sell-flow.js (converted to catalog format)
-const DEFAULT_MODELS = [
+const LEGACY_MODELS = [
   // Apple - expanded range
   { id: 'iphone-6s', name: 'Apple iPhone 6S', brand: 'Apple', price: '2310', condition: 'Good', image: 'https://images.unsplash.com/photo-1573148195906-32dffe7b9d38?auto=format&fit=crop&w=500&q=80', spec: '2 GB / 32 GB' },
   { id: 'iphone-6', name: 'Apple iPhone 6', brand: 'Apple', price: '1850', condition: 'Good', image: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=500&q=80', spec: '16 GB' },
@@ -238,7 +238,7 @@ const DEFAULT_MODELS = [
   { id: 'nothing-phone-2', name: 'Nothing Phone (2)', brand: 'Nothing', price: '23500', condition: 'Good', spec: '256 GB' }
 ];
 
-window.DEFAULT_MODELS = DEFAULT_MODELS;
+window.DEFAULT_MODELS = window.DEFAULT_MODELS || LEGACY_MODELS;
 
 function normalizeBrandName(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -285,20 +285,12 @@ function readPhoneCatalog(){
     sellCatalog = [];
   }
 
-  const merged = new Map();
-  [...storedCatalog, ...sellCatalog, ...DEFAULT_MODELS].forEach(phone => {
-    if (!phone || !phone.name || !phone.brand) return;
-    const normalizedName = String(phone.name).trim();
-    const normalizedBrand = /^poco\b/i.test(normalizedName) ? 'Poco' : phone.brand;
-    const overrides = JSON.parse(localStorage.getItem('swapioSellModels') || '{}');
-    const normalizedPhone = { ...phone, brand: normalizedBrand };
-    const override = overrides[normalizedPhone.id];
-    if (override) Object.assign(normalizedPhone, override, { brand: /^poco\b/i.test(String(override.name || normalizedName)) ? 'Poco' : (override.brand || normalizedBrand) });
-    const key = getCatalogModelKey(normalizedPhone);
-    if (!merged.has(key)) merged.set(key, normalizedPhone);
-  });
-
-  const catalog = Array.from(merged.values()).filter(phone => !phone.hidden);
+  const seeds = [...(window.DEFAULT_MODELS || LEGACY_MODELS), ...storedCatalog, ...sellCatalog];
+  const catalog = window.swapioData?.readCatalog
+    ? window.swapioData.readCatalog('sell', seeds, false)
+    : seeds.filter(phone => phone && phone.name && phone.brand && !phone.hidden);
+  const naturalNameOrder = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  catalog.sort((first, second) => naturalNameOrder.compare(String(first.name || ''), String(second.name || '')));
   if (JSON.stringify(storedCatalog) !== JSON.stringify(catalog)) {
     localStorage.setItem('swapioPhoneCatalog', JSON.stringify(catalog));
   }
