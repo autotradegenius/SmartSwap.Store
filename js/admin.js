@@ -1483,17 +1483,29 @@ function setupAdmin(){
         const image = new Image();
         image.onload = () => {
           const canvas = document.createElement('canvas');
-          const canvasSize = 800;
-          const padding = 64;
-          const scale = Math.min((canvasSize - padding * 2) / image.width, (canvasSize - padding * 2) / image.height, 1);
-          const width = Math.max(1, Math.round(image.width * scale));
-          const height = Math.max(1, Math.round(image.height * scale));
-          canvas.width = canvasSize;
-          canvas.height = canvasSize;
+          const targetWidth = 1200;
+          const targetHeight = 900;
+          const targetRatio = targetWidth / targetHeight;
+          const imageRatio = image.width / image.height;
           const context = canvas.getContext('2d');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
           context.fillStyle = '#ffffff';
-          context.fillRect(0, 0, canvasSize, canvasSize);
-          context.drawImage(image, (canvasSize - width) / 2, (canvasSize - height) / 2, width, height);
+          context.fillRect(0, 0, targetWidth, targetHeight);
+
+          let sx = 0;
+          let sy = 0;
+          let sw = image.width;
+          let sh = image.height;
+          if (imageRatio > targetRatio) {
+            sw = image.height * targetRatio;
+            sx = (image.width - sw) / 2;
+          } else {
+            sh = image.width / targetRatio;
+            sy = (image.height - sh) / 2;
+          }
+
+          context.drawImage(image, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
           resolve(canvas.toDataURL('image/jpeg', 0.82));
         };
         image.src = reader.result;
