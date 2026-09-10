@@ -1163,8 +1163,11 @@ function renderAdminSellModels(){
     list.innerHTML = '<p class="admin-empty">No phones in sell catalog yet. Use "Add sell phone" above.</p>';
     return;
   }
-  if(adminCatalogViews.sell) renderCatalogModels(list, models, 'sell', adminCatalogViews.sell);
-  else renderCatalogBrandPicker(list, models, 'sell', 'sell phone');
+  if(adminCatalogViews.sell && adminCatalogViews.sell !== '__all__') {
+    renderCatalogModels(list, models, 'sell', adminCatalogViews.sell);
+  } else {
+    renderCatalogBrandPicker(list, models, 'sell', 'sell phone');
+  }
 }
 
 // Buy phone catalog: merges the fixed buy-model list with any custom phones
@@ -1194,8 +1197,11 @@ function renderAdminBuyModels(){
     list.innerHTML = '<p class="admin-empty">No phones in buy catalog yet. Use "Add phone" above.</p>';
     return;
   }
-  if(adminCatalogViews.buy) renderCatalogModels(list, models, 'buy', adminCatalogViews.buy);
-  else renderCatalogBrandPicker(list, models, 'buy', 'buy phone');
+  if(adminCatalogViews.buy && adminCatalogViews.buy !== '__all__') {
+    renderCatalogModels(list, models, 'buy', adminCatalogViews.buy);
+  } else {
+    renderCatalogBrandPicker(list, models, 'buy', 'buy phone');
+  }
 }
 
 function readPhoneCatalog(){
@@ -1560,37 +1566,10 @@ function setupAdmin(){
       reader.readAsDataURL(file);
     }) : Promise.resolve('');
 
-    async function uploadImageDataUrl(file, side) {
-      if (!file) return '';
-      const dataUrl = await readImage(file);
-      if (!dataUrl) return '';
-      const payload = {
-        brand: data.brand || 'other-brand',
-        model: data.name || 'product',
-        type: side,
-        imageDataUrl: dataUrl
-      };
-      try {
-        const response = await fetch('/api/product-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
-          throw new Error('Image upload failed');
-        }
-        const result = await response.json();
-        return result.url || '';
-      } catch (error) {
-        window.alert('Image upload failed. Product image was not saved.');
-        return '';
-      }
-    }
-
     const frontFile = form.elements.frontPhoto.files[0];
     const backFile = form.elements.backPhoto.files[0];
-    const frontImage = await uploadImageDataUrl(frontFile, 'front');
-    const backImage = await uploadImageDataUrl(backFile, 'back');
+    const frontImage = await readImage(frontFile);
+    const backImage = await readImage(backFile);
     const products = readProducts();
     if(editIndex.startsWith('custom:')){
       const productIndex = Number(editIndex.slice(7));
@@ -1831,28 +1810,44 @@ function setupAdmin(){
     productForm.scrollIntoView({behavior:'smooth', block:'center'});
   });
   document.getElementById('viewBuyListBtn').addEventListener('click', () => {
-    if(adminCatalogViews.buyOpen){
+    const list = document.getElementById('adminBuyModels');
+    if(adminCatalogViews.buyOpen && adminCatalogViews.buy === '__all__'){
       adminCatalogViews.buy = null;
       adminCatalogViews.buyOpen = false;
-      document.getElementById('adminBuyModels').innerHTML = '';
+      list.innerHTML = '';
+      return;
+    }
+    if(adminCatalogViews.buy && adminCatalogViews.buy !== '__all__'){
+      adminCatalogViews.buy = '__all__';
+      adminCatalogViews.buyOpen = true;
+      renderAdminBuyModels();
+      list.scrollIntoView({behavior:'smooth', block:'start'});
       return;
     }
     adminCatalogViews.buy = '__all__';
     adminCatalogViews.buyOpen = true;
     renderAdminBuyModels();
-    document.getElementById('adminBuyModels').scrollIntoView({behavior:'smooth', block:'start'});
+    list.scrollIntoView({behavior:'smooth', block:'start'});
   });
   document.getElementById('viewSellListBtn').addEventListener('click', () => {
-    if(adminCatalogViews.sellOpen){
+    const list = document.getElementById('adminSellModels');
+    if(adminCatalogViews.sellOpen && adminCatalogViews.sell === '__all__'){
       adminCatalogViews.sell = null;
       adminCatalogViews.sellOpen = false;
-      document.getElementById('adminSellModels').innerHTML = '';
+      list.innerHTML = '';
+      return;
+    }
+    if(adminCatalogViews.sell && adminCatalogViews.sell !== '__all__'){
+      adminCatalogViews.sell = '__all__';
+      adminCatalogViews.sellOpen = true;
+      renderAdminSellModels();
+      list.scrollIntoView({behavior:'smooth', block:'start'});
       return;
     }
     adminCatalogViews.sell = '__all__';
     adminCatalogViews.sellOpen = true;
     renderAdminSellModels();
-    document.getElementById('adminSellModels').scrollIntoView({behavior:'smooth', block:'start'});
+    list.scrollIntoView({behavior:'smooth', block:'start'});
   });
   document.getElementById('adminBuyModels').addEventListener('click', event => {
     const searchResult = event.target.closest('[data-catalog-search-result]');

@@ -5,68 +5,6 @@ const path = require('path');
 const root = __dirname;
 const port = Number(process.env.PORT || 8000);
 
-function normalizeFolderPart(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-}
-
-function decodeDataUrl(imageDataUrl) {
-  const match = String(imageDataUrl || '').match(/^data:(image\/(png|jpeg|jpg|webp|gif));base64,(.+)$/i);
-  if (!match) return null;
-  const mime = String(match[1]).toLowerCase();
-  const ext = mime.includes('png') ? 'png'
-    : mime.includes('webp') ? 'webp'
-    : mime.includes('gif') ? 'gif'
-    : 'jpg';
-  return { ext, buffer: Buffer.from(match[3], 'base64') };
-}
-
-function uploadProductImage(req, res) {
-  let body = '';
-  req.on('data', chunk => {
-    body += chunk;
-    if (body.length > 2 * 1024 * 1024) {
-      body = body.slice(0, 2 * 1024 * 1024);
-    }
-  });
-
-  req.on('end', () => {
-    try {
-      const payload = JSON.parse(body || '{}');
-      const imageData = decodeDataUrl(payload.imageDataUrl);
-      if (!imageData) {
-        res.statusCode = 400;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Expected a valid image data URL.' }));
-        return;
-      }
-
-      const brand = normalizeFolderPart(payload.brand || 'other-brand');
-      const model = normalizeFolderPart(payload.model || 'product');
-      const type = String(payload.type || 'front').toLowerCase() === 'back' ? 'back' : 'front';
-      const folder = path.join(root, 'assets', 'phones', brand, model);
-      fs.mkdirSync(folder, { recursive: true });
-
-      const fileName = `${type}.${imageData.ext}`;
-      const filePath = path.join(folder, fileName);
-      fs.writeFileSync(filePath, imageData.buffer);
-
-      const publicUrl = `/assets/phones/${brand}/${model}/${fileName}`;
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ url: publicUrl }));
-    } catch (error) {
-      res.statusCode = 400;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: error.message || 'Image upload failed.' }));
-    }
-  });
-}
-
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -119,11 +57,6 @@ function resolveFile(reqUrl) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
-
-  if (req.method === 'POST' && url.pathname === '/api/product-image') {
-    uploadProductImage(req, res);
-    return;
-  }
 
   const filePath = resolveFile(url.pathname);
 
