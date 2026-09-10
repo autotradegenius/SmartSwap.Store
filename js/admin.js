@@ -1088,7 +1088,9 @@ function renderCatalogSearchResults(typeName, query, scope, view, results){
     results.innerHTML = filtered.map(model => {
       const brand = catalogBrandLabel(model);
       const brandKey = brand.toLowerCase();
-      return `<div class="admin-catalog-search-result" data-catalog-search-result="true" data-catalog-brand="${brandKey}" data-catalog-type="${typeName}"><span class="admin-catalog-search-brand">${brand}</span><span class="admin-catalog-search-model">${model.name}</span></div>`;
+      const isCustom = Boolean(model.custom);
+      const modelIdentity = isCustom ? String(model.customIndex) : String(model.id || model.name);
+      return `<div class="admin-catalog-search-result" data-catalog-search-result="true" data-catalog-brand="${brandKey}" data-catalog-type="${typeName}" data-catalog-custom="${isCustom}" data-catalog-id="${modelIdentity}"><span class="admin-catalog-search-brand">${brand}</span><span class="admin-catalog-search-model">${model.name}</span></div>`;
     }).join('');
   }
   results.classList.add('open');
@@ -1451,6 +1453,51 @@ function setupAdmin(){
     });
   }
 
+  function openBuyModelIntoForm(model){
+    if(model.custom){
+      productForm.elements.name.value = model.name;
+      productForm.elements.grade.value = model.grade || '';
+      productForm.elements.warranty.value = model.warranty || '';
+      fillStorageVariants(model);
+      productForm.elements.editIndex.value = `custom:${model.customIndex}`;
+      setBrandSelectValue(model.brand);
+      productForm.elements.frontPhoto.value = '';
+      productForm.elements.backPhoto.value = '';
+      productFormTitle.textContent = 'Edit phone';
+      productForm.querySelector('button[type="submit"]').textContent = 'Update phone';
+      cancelEdit.hidden = false;
+      productForm.scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
+    productForm.elements.name.value = model.name;
+    setBrandSelectValue(model.brand || brandFromSpec(model.spec));
+    fillStorageVariants(model);
+    productForm.elements.grade.value = model.grade || '';
+    productForm.elements.warranty.value = model.warranty || '';
+    productForm.elements.editIndex.value = `buy:${model.id}`;
+    productForm.elements.frontPhoto.value = '';
+    productForm.elements.backPhoto.value = '';
+    productFormTitle.textContent = 'Edit buy phone';
+    productForm.querySelector('button[type="submit"]').textContent = 'Update buy phone';
+    cancelEdit.hidden = false;
+    productForm.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  function openSellModelIntoForm(model){
+    productForm.elements.name.value = model.name;
+    setBrandSelectValue(model.brand || brandFromSpec(model.spec));
+    productForm.elements.grade.value = model.grade || '';
+    productForm.elements.warranty.value = model.warranty || '';
+    fillStorageVariants(model);
+    productForm.elements.frontPhoto.value = '';
+    productForm.elements.backPhoto.value = '';
+    productForm.elements.editIndex.value = `sell:${model.id}`;
+    productFormTitle.textContent = 'Edit sell phone';
+    productForm.querySelector('button[type="submit"]').textContent = 'Update sell phone';
+    cancelEdit.hidden = false;
+    productForm.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
   cancelEdit.addEventListener('click', resetProductForm);
   productForm.addEventListener('submit', async event => {
     event.preventDefault();
@@ -1784,30 +1831,44 @@ function setupAdmin(){
     productForm.scrollIntoView({behavior:'smooth', block:'center'});
   });
   document.getElementById('viewBuyListBtn').addEventListener('click', () => {
-    adminCatalogViews.buy = null;
-    adminCatalogViews.buyOpen = !adminCatalogViews.buyOpen;
-    if(adminCatalogViews.buyOpen) {
-      renderAdminBuyModels();
-      document.getElementById('adminBuyModels').scrollIntoView({behavior:'smooth', block:'start'});
-    } else {
+    if(adminCatalogViews.buyOpen){
+      adminCatalogViews.buy = null;
+      adminCatalogViews.buyOpen = false;
       document.getElementById('adminBuyModels').innerHTML = '';
+      return;
     }
+    adminCatalogViews.buy = '__all__';
+    adminCatalogViews.buyOpen = true;
+    renderAdminBuyModels();
+    document.getElementById('adminBuyModels').scrollIntoView({behavior:'smooth', block:'start'});
   });
   document.getElementById('viewSellListBtn').addEventListener('click', () => {
-    adminCatalogViews.sell = null;
-    adminCatalogViews.sellOpen = !adminCatalogViews.sellOpen;
-    if(adminCatalogViews.sellOpen) {
-      renderAdminSellModels();
-      document.getElementById('adminSellModels').scrollIntoView({behavior:'smooth', block:'start'});
-    } else {
+    if(adminCatalogViews.sellOpen){
+      adminCatalogViews.sell = null;
+      adminCatalogViews.sellOpen = false;
       document.getElementById('adminSellModels').innerHTML = '';
+      return;
     }
+    adminCatalogViews.sell = '__all__';
+    adminCatalogViews.sellOpen = true;
+    renderAdminSellModels();
+    document.getElementById('adminSellModels').scrollIntoView({behavior:'smooth', block:'start'});
   });
   document.getElementById('adminBuyModels').addEventListener('click', event => {
     const searchResult = event.target.closest('[data-catalog-search-result]');
     const brand = event.target.closest('[data-catalog-brand]');
     const back = event.target.closest('[data-catalog-back="buy"]');
-    if(searchResult){ adminCatalogViews.buy = searchResult.dataset.catalogBrand; renderAdminBuyModels(); return; }
+    if(searchResult){
+      const model = getCatalogBuyModelsForSearch().find(entry => String(entry.custom ? entry.customIndex : entry.id) === String(searchResult.dataset.catalogId) && Boolean(entry.custom) === (searchResult.dataset.catalogCustom === 'true'));
+      if(model){
+        openBuyModelIntoForm(model);
+        return;
+      }
+      adminCatalogViews.buy = searchResult.dataset.catalogBrand;
+      adminCatalogViews.buyOpen = true;
+      renderAdminBuyModels();
+      return;
+    }
     if(brand){
       if(adminCatalogViews.buy === brand.dataset.catalogBrand){
         adminCatalogViews.buy = null;
@@ -1848,7 +1909,17 @@ function setupAdmin(){
     const searchResult = event.target.closest('[data-catalog-search-result]');
     const brand = event.target.closest('[data-catalog-brand]');
     const back = event.target.closest('[data-catalog-back="sell"]');
-    if(searchResult){ adminCatalogViews.sell = searchResult.dataset.catalogBrand; renderAdminSellModels(); return; }
+    if(searchResult){
+      const model = getCatalogSellModelsForSearch().find(entry => String(entry.id) === String(searchResult.dataset.catalogId));
+      if(model){
+        openSellModelIntoForm(model);
+        return;
+      }
+      adminCatalogViews.sell = searchResult.dataset.catalogBrand;
+      adminCatalogViews.sellOpen = true;
+      renderAdminSellModels();
+      return;
+    }
     if(brand){
       if(adminCatalogViews.sell === brand.dataset.catalogBrand){
         adminCatalogViews.sell = null;
